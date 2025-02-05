@@ -1,0 +1,135 @@
+{% extends "frontend/base_cms/base.html" %}
+
+{% block content %}
+
+
+
+    <div class="card bg-base-100 shadow-xl p-6 m-5 text-center">
+        <h1 class="text-2xl font-bold mb-4">Report Scontrini <badge class="badge badge-primary text-white text-xl">{{ branch.name }}</badge> - Dal {{ date_start }} a {{ date_end }}</h1>
+        <div id="chartTickets"></div>
+    </div>
+
+    <div class="card bg-base-100 shadow-xl p-6 m-5 text-center">
+        <h1 class="text-2xl font-bold mb-4">Report Vendite <badge class="badge badge-primary text-white text-xl">{{ branch.name }}</badge> - Dal {{ date_start }} a {{ date_end }}</h1>
+        <div id="chartSales"></div>
+    </div>
+
+
+  {# This will output a script tag with the JSON data in a safe way #}
+  {{ sc|json_script:"sc-data" }}
+  {{ sales|json_script:"sales-data" }}
+
+  <!-- Include ApexCharts from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script>
+    // Retrieve the JSON data from the hidden script tag.
+    var chartData = JSON.parse(document.getElementById('sc-data').textContent);
+    console.log("chartData:", chartData);
+
+    var labels = Object.keys(chartData).sort();
+    var values = labels.map(function(date) {
+      return chartData[date];
+    });
+
+    var options = {
+      chart: {
+        type: 'area',
+        height: 350,
+      },
+      series: [{
+        name: 'Report Data',
+        data: values  // your values array
+      }],
+      xaxis: {
+        categories: labels,  // your labels array (dates)
+        labels: {
+          style: {
+            colors: 'var(--icon-color)',        // Either a single color or an array of colors
+            fontSize: '14px',
+            fontFamily: 'Helvetica, Arial, sans-serif',
+            fontWeight: 600
+          }
+        }
+      },
+      yaxis: {
+        labels: {
+          style: {
+            colors: 'var(--icon-color)',
+            fontSize: '12px',
+            fontFamily: 'Helvetica, Arial, sans-serif',
+            fontWeight: 400
+          }
+        }
+      },
+      grid: {
+        borderColor: '#e0e0e0',
+        strokeDashArray: 5
+      },
+      tooltip: {
+        theme: 'dark',
+        x: {
+          format: 'yyyy-MM-dd'
+        }
+      }
+    };
+
+    var chart = new ApexCharts(document.querySelector("#chartTickets"), options);
+    chart.render();
+  </script>
+  <script>
+    // Retrieve the JSON data from the hidden script tag.
+    var chartData = JSON.parse(document.getElementById('sales-data').textContent);
+    console.log("chartData:", chartData);
+
+    var labels = Object.keys(chartData).sort();
+    var values = labels.map(function(date) {
+      return chartData[date];
+    });
+
+    var options = {
+      chart: {
+        type: 'area',
+        height: 350,
+      },
+      series: [{
+        name: 'Report Data',
+        data: values  // your values array
+      }],
+      xaxis: {
+        categories: labels,  // your labels array (dates)
+        labels: {
+          style: {
+            colors: 'var(--icon-color)',        // Either a single color or an array of colors
+            fontSize: '14px',
+            fontFamily: 'Helvetica, Arial, sans-serif',
+            fontWeight: 600
+          }
+        }
+      },
+      yaxis: {
+        labels: {
+          style: {
+            colors: 'var(--icon-color)',
+            fontSize: '12px',
+            fontFamily: 'Helvetica, Arial, sans-serif',
+            fontWeight: 400
+          }
+        }
+      },
+      grid: {
+        borderColor: '#e0e0e0',
+        strokeDashArray: 5
+      },
+      tooltip: {
+        theme: 'dark',
+        x: {
+          format: 'yyyy-MM-dd'
+        }
+      }
+    };
+
+    var chart = new ApexCharts(document.querySelector("#chartSales"), options);
+    chart.render();
+  </script>
+
+{% endblock %}

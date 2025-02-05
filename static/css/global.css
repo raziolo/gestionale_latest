@@ -1,0 +1,29 @@
+:root {
+  --icon-color: #000000; /* Default for light mode */
+  --icons-button-color: #000000;
+}
+
+[data-theme="dark"] {
+  --icon-color: #ffffff; /* Color for dark mode */
+  --icons-button-color: #000000;
+
+}
+
+box-icon {
+  fill: var(--icon-color);
+}
+
+button .box-icon {
+  fill: var(--icons-button-color) !important;
+}
+
+.select {
+  padding-top: 7px;
+}
+
+
+
+
+
+
+

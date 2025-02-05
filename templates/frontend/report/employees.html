@@ -1,0 +1,102 @@
+{% extends "frontend/base_cms/base.html" %}
+
+{% block content %}
+  <!-- Container for the employee tickets area chart -->
+
+ <div class="card bg-base-100 shadow-xl p-6 m-5 text-center">
+        <h1 class="text-2xl font-bold mb-4">Report Performance Scontrini <badge class="badge badge-primary text-white text-xl">{{ branch.name }}</badge> - Dal {{ date_start }} a {{ date_end }}</h1>
+    <div id="employeeTicketsChart"></div>
+    </div>
+
+  <!-- Include ApexCharts from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+  {# Safely output the performance data as JSON using Django's json_script filter #}
+  {{ sc_performance|json_script:"employeeTicketsData" }}
+
+  <script>
+    (function(){
+      // Retrieve the performance data passed from the backend
+      var employeeTicketsData = JSON.parse(document.getElementById('employeeTicketsData').textContent);
+
+      // Get the date range values from the context (ensure these are passed as strings)
+      var dateStart = "{{ date_start }}";
+      var dateEnd = "{{ date_end }}";
+
+      // Helper function to generate an array of date strings between start and end (inclusive)
+      function getDatesBetween(start, end) {
+        var dates = [];
+        var currentDate = new Date(start);
+        var lastDate = new Date(end);
+        while (currentDate <= lastDate) {
+          var year = currentDate.getFullYear();
+          var month = ("0" + (currentDate.getMonth() + 1)).slice(-2);
+          var day = ("0" + currentDate.getDate()).slice(-2);
+          dates.push(year + "-" + month + "-" + day);
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+        return dates;
+      }
+
+      // Generate the x-axis labels based on the date range
+      var employeeTicketsDateLabels = getDatesBetween(dateStart, dateEnd);
+
+      // Build the series array for ApexCharts. Each employee becomes its own series.
+      var employeeTicketsSeries = [];
+      for (var employee in employeeTicketsData) {
+        if (employeeTicketsData.hasOwnProperty(employee)) {
+          employeeTicketsSeries.push({
+            name: employee,
+            data: employeeTicketsData[employee]
+          });
+        }
+      }
+
+      // Configure the ApexCharts area chart options using our modular names
+      var employeeTicketsOptions = {
+        chart: {
+          type: 'area',
+          height: 350
+        },
+        series: employeeTicketsSeries,
+        xaxis: {
+          categories: employeeTicketsDateLabels,
+          type: 'category',
+          labels: {
+              style: {
+                colors: 'var(--icon-color)',        // Either a single color or an array of colors
+                fontSize: '14px',
+                fontFamily: 'Helvetica, Arial, sans-serif',
+                fontWeight: 600
+              }
+            }
+        },
+        yaxis: {
+        labels: {
+          style: {
+            colors: 'var(--icon-color)',
+            fontSize: '12px',
+            fontFamily: 'Helvetica, Arial, sans-serif',
+            fontWeight: 400
+          }
+        }
+      },
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          curve: 'smooth'
+        },
+        tooltip: {
+          x: {
+            format: 'yyyy-MM-dd'
+          }
+        }
+      };
+
+      // Instantiate and render the employee tickets chart
+      var employeeTicketsChart = new ApexCharts(document.querySelector("#employeeTicketsChart"), employeeTicketsOptions);
+      employeeTicketsChart.render();
+    })();
+  </script>
+{% endblock %}

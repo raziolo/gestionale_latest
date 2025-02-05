@@ -1,0 +1,94 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %} {% endblock title %}</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.23/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+
+     <script src="https://unpkg.com/boxicons@2.1.4/dist/boxicons.js"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+    <link rel="stylesheet" href="{% static 'css/global.css' %}">
+
+
+</head>
+<body>
+{% include "frontend/base_cms/header.html" %}
+
+{% block content %}
+
+
+{% endblock content %}
+
+
+{% block custom_js %}
+
+
+{% endblock custom_js %}
+
+
+
+
+
+<script>
+
+
+
+  // Helper function to set a cookie
+  function setCookie(name, value, days) {
+    const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
+    document.cookie = `${name}=${value}; expires=${expires}; path=/`;
+  }
+
+  // Helper function to get a cookie value
+  function getCookie(name) {
+    const cookies = document.cookie.split('; ');
+    const cookie = cookies.find(row => row.startsWith(name + '='));
+    return cookie ? cookie.split('=')[1] : null;
+  }
+
+  // Apply theme based on cookie or default
+  document.addEventListener("DOMContentLoaded", () => {
+    const checkbox = document.querySelector('input[type="checkbox"]');
+    const savedTheme = getCookie('theme');
+
+    // Apply saved theme or default to 'lemonade'
+    const initialTheme = savedTheme || 'lemonade';
+    document.documentElement.setAttribute('data-theme', initialTheme);
+
+    // Set checkbox state based on theme
+    if (checkbox) {
+      checkbox.checked = (initialTheme === 'dark');
+    }
+
+    // Listen for checkbox changes
+    if (checkbox) {
+      checkbox.addEventListener('change', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'lemonade' : 'dark';
+
+        // Apply new theme
+        document.documentElement.setAttribute('data-theme', newTheme);
+
+        // Save new theme in a cookie
+        setCookie('theme', newTheme, 30); // Save for 30 days
+      });
+    }
+  });
+</script>
+
+<footer class="footer footer-center bg-base-300 text-base-content p-4">
+  <aside>
+    <p>2025 - Gestionale 3</p>
+  </aside>
+</footer>
+</body>
+</html>
