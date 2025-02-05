@@ -9,6 +9,36 @@
 
 }
 
+[data-theme="night"] {
+  --icon-color: #ffffff; /* Color for dark mode */
+  --icons-button-color: #000000;
+
+}
+
+[data-theme="coffee"] {
+  --icon-color: #ffffff; /* Color for dark mode */
+  --icons-button-color: #000000;
+
+}
+
+
+[data-theme="sunset"] {
+  --icon-color: #ffffff; /* Color for dark mode */
+  --icons-button-color: #000000;
+
+}
+
+[data-theme="black"] {
+  --icon-color: #ffffff; /* Color for dark mode */
+  --icons-button-color: #000000;
+
+}
+
+[data-theme="dracula"] {
+  --icon-color: #ffffff; /* Color for dark mode */
+  --icons-button-color: #000000;
+
+}
 box-icon {
   fill: var(--icon-color);
 }

@@ -26,7 +26,7 @@ def dashboard(request):
 from django_tables2 import SingleTableView
 from django_filters.views import FilterView
 
-from .tables import EmployeeTable
+from .tables import EmployeeTable, EmployeePerformancesTable
 from .filters import EmployeeFilter
 from api.models import Employee
 
@@ -261,16 +261,45 @@ def report_employees(request):
 
         # Generate the report (adjust parameters as needed)
 
+
+
         sc_performance = f.generate_report_performance_scontrini(branch_id, date_start, date_end)
 
         sales_performance = f.generate_report_performance_sales(branch_id, date_start, date_end)
-        print(sales_performance)
+
+
+        medium_sc_sales = f.generate_medium_sc_sales(sc_performance)
+
+        medium_sales_performance = f.generate_medium_sales_performance(sales_performance)
+
+        medium_number_sales_performance = f.generate_medium_sales(sales_performance)
+
+        performance_table_data = []
+
+        for key, value in sc_performance.items():
+            performance_table_data.append({
+                    "employee": key,
+                    "quantita": int(medium_number_sales_performance[key]),
+                    "n_scontrini": medium_sc_sales[key],
+                    "importo": medium_sales_performance[key],
+                }
+            )
+
+        performances_table = EmployeePerformancesTable(performance_table_data, orderable=False)
+
         context = {
             "sc_performance": sc_performance,
             "branch": Branch.objects.get(id=branch_id),
             "date_start": date_start,
             "date_end": date_end,
-            "sales_performance": sales_performance
+            "sales_performance": sales_performance,
+            "performances_table": performances_table,
+
         }
 
         return render(request, "frontend/report/employees.html", context)
+
+
+def config(request):
+    if request.method == 'GET':
+        return render(request, "frontend/base_cms/config.html")

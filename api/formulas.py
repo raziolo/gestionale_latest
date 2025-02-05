@@ -310,3 +310,122 @@ def generate_branch_report_sales(branch_id, start_date, end_date):
         data[import_obj.import_date] = get_branch_single_day_sales(branch_id, import_obj.import_date)
 
     return data
+
+def get_number_sales_performance_single_date(employee_id, date):
+
+    employee = None
+    branch = None
+    import_obj = None
+
+    try:
+        employee = Employee.objects.get(id=employee_id)
+    except Employee.DoesNotExist:
+        print("no emp")
+
+    if employee:
+        branch = employee.branch
+
+    try:
+        import_obj = Import.objects.get(import_date=date, branch=branch)
+    except Import.DoesNotExist:
+        print("no impp")
+
+    data = import_obj.data
+    for employee_data in data:
+        if employee_data['Dipendente'] == employee.id:
+            return employee_data['Qta. Vend.']
+
+    return 0
+
+def get_number_sales_performance_employee_date_range(employee_id, start_date, end_date):
+
+    employee = None
+    branch = None
+    import_objs_qs = None
+
+
+    try:
+        employee = Employee.objects.get(id=employee_id)
+    except Employee.DoesNotExist:
+        print("no emp")
+
+    if employee:
+        branch = employee.branch
+
+    try:
+        import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch)
+    except Import.DoesNotExist:
+        print("no impp")
+
+    grand_total = 0
+
+    if import_objs_qs.count() > 0:
+        for import_obj in import_objs_qs:
+            data = import_obj.data
+            for employee_data in data:
+                if employee_data['Dipendente'] == employee.id:
+                    grand_total += int(employee_data['Qta. Vend.'])
+
+    return grand_total
+
+
+def generate_number_sales_performance(branch_id, start_date, end_date):
+
+    branch = None
+    import_objs_qs = None
+    employees_objs_qs = None
+
+    try:
+        branch = Branch.objects.get(id=branch_id)
+    except Branch.DoesNotExist:
+        print("no branch")
+
+    try:
+        import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch)
+    except Import.DoesNotExist:
+        print("no impp")
+
+    try:
+        employees_objs_qs = Employee.objects.filter(branch=branch)
+    except Employee.DoesNotExist:
+        print("no employees")
+
+    # data = {"YYYY/MM/DD": 203, "YYYY/MM/DD": 101}
+
+    data = {}
+
+    for import_obj in import_objs_qs:
+        data[import_obj.import_date] = get_number_sales_performance_single_date(branch_id, import_obj.import_date)
+
+    return data
+
+def generate_medium_sales(sales_performance):
+
+    medium_sales_performance_data = {}
+
+    for key, value in sales_performance.items():
+        medium_sales_performance_data[key] = round(sum(value)/len(value), 2)
+
+    return medium_sales_performance_data
+
+
+def generate_medium_sc_sales(sc_performance):
+
+    medium_sc_performance_data = {}
+
+    for key, value in sc_performance.items():
+        medium_sc_performance_data[key] = round(sum(value)/len(value), 2)
+
+    return medium_sc_performance_data
+
+
+
+
+def generate_medium_sales_performance(sales_performance):
+
+    medium_sales_performance_data = {}
+
+    for key, value in sales_performance.items():
+        medium_sales_performance_data[key] = round(sum(value)/len(value), 2)
+
+    return medium_sales_performance_data

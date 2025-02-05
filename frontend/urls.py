@@ -17,4 +17,6 @@ urlpatterns = [
     path('all_employees/', EmployeeListView.as_view(), name='all_employees'),
 
     path('import/', views.import_data, name='import'),
+
+    path('config/', views.config, name='config'),
 ]
