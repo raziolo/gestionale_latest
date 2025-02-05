@@ -263,11 +263,14 @@ def report_employees(request):
 
         sc_performance = f.generate_report_performance_scontrini(branch_id, date_start, date_end)
 
+        sales_performance = f.generate_report_performance_sales(branch_id, date_start, date_end)
+        print(sales_performance)
         context = {
             "sc_performance": sc_performance,
             "branch": Branch.objects.get(id=branch_id),
             "date_start": date_start,
             "date_end": date_end,
+            "sales_performance": sales_performance
         }
 
         return render(request, "frontend/report/employees.html", context)

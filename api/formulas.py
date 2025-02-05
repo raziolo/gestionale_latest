@@ -189,6 +189,74 @@ def generate_report_performance_scontrini(branch_id, start_date, end_date):
     return display_data
 
 
+def generate_report_performance_sales(branch_id, start_date, end_date):
+    # Get the branch object
+    try:
+        branch = Branch.objects.get(id=branch_id)
+    except Branch.DoesNotExist:
+        print("No branch found")
+        return {}, []
+
+    # Get import objects and employees for the branch
+    import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch)
+    employees_objs_qs = Employee.objects.filter(branch=branch)
+
+    # Create a date range list from start_date to end_date (inclusive)
+    try:
+        start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+    except ValueError:
+        print("Date format error. Please use YYYY-MM-DD.")
+        return {}, []
+
+    num_days = (end_date_obj - start_date_obj).days + 1
+    date_range = [(start_date_obj + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(num_days)]
+
+    # Initialize report_data: each employee gets a dictionary with every date set to 0
+    report_data = {}
+    for employee in employees_objs_qs:
+        report_data[employee.id] = {date: 0 for date in date_range}
+
+    # Loop through each import and add the performance values for the appropriate date & employee.
+    for import_obj in import_objs_qs:
+        # Assumption: import_obj.import_date is a string in "YYYY-MM-DD" format.
+        imp_date = import_obj.import_date
+        if imp_date not in date_range:
+            continue  # skip if date not in range
+
+        # import_obj.data is assumed to be a list of dictionaries, one per employee
+        for employee_data in import_obj.data:
+            try:
+                emp_id = int(employee_data['Dipendente'])
+            except (KeyError, ValueError):
+                continue  # skip if employee id is missing or invalid
+
+            if emp_id in report_data:
+                try:
+                    # Convert the performance value to float.
+                    # (Adjust this conversion if you prefer Decimal arithmetic.)
+                    value = float(employee_data['Importo'].replace(".", "").replace(",", "."))
+                    print(value)
+
+                except (KeyError, ValueError):
+                    value = 0
+                # Sum the value if there are multiple entries for the same day.
+                report_data[emp_id][imp_date] += value
+
+    # Build display_data: convert each employee's dictionary into a list in the same date order.
+    display_data = {}
+    for emp_id, daily_data in report_data.items():
+        try:
+            emp = employees_objs_qs.get(id=emp_id)
+        except Employee.DoesNotExist:
+            continue  # just in case
+        key = f"({emp.id}) {emp.first_name} {emp.last_name}"
+        # Create a list of values corresponding to each day in date_range.
+        display_data[key] = [daily_data[date] for date in date_range]
+
+    return display_data
+
+
 ### VENDITE
 
 def get_branch_single_day_sales(branch_id, date):
