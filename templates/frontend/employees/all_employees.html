@@ -5,11 +5,10 @@
 {% block title %}Employee List{% endblock %}
 
 {% block content %}
-    <h1 class="text-2xl font-bold mb-4">Employee List</h1>
 
     <!-- FILTER FORM CONTAINER -->
     <div class="card bg-base-100 shadow-xl p-6 m-5">
-        <h2 class="text-lg font-semibold mb-4">Filters</h2>
+        <h2 class="text-lg font-semibold mb-4">Filtri</h2>
 
         <form method="get" class="grid grid-cols-4 gap-4">
             <!-- Common Search -->
@@ -49,7 +48,7 @@
     </div>
 
     <!-- EMPLOYEE TABLE -->
-    <div class="card bg-base-100 shadow-xl p-4 m-5">
+    <div class="card bg-base-100 shadow-xl p-4 m-5 ">
         {% render_table table %}
     </div>
 

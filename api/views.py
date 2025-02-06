@@ -98,30 +98,6 @@ def manage_employee(request):
             return JsonResponse({'status': 'error', 'message': 'Employee not found'})
 
 
-@csrf_exempt
-def new_employee(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        first_name = data.get('first_name')
-        last_name = data.get('last_name')
-        branch = data.get('branch')
-        role = data.get('role')
-
-        try:
-            branch = Branch.objects.get(id=branch)
-            role = Role.objects.get(id=role)
-        except Branch.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Branch not found'})
-        except Role.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Role not found'})
-
-        employee = Employee.objects.create(
-            first_name=first_name,
-            last_name=last_name,
-            branch=branch,
-            role=role
-        )
-        return JsonResponse({'status': 'success', 'id': employee.id})
 
 def get_employee_data(request, employee_id):
     if request.method == 'GET':

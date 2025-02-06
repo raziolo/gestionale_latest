@@ -19,9 +19,6 @@
         {% render_table performances_table %}
     </div>
 
-  <!-- Include ApexCharts from CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-
   {# Safely output the performance data as JSON using Django's json_script filter #}
   {{ sc_performance|json_script:"employeeTicketsData" }}
   {{ sales_performance|json_script:"salesPerformanceData" }}

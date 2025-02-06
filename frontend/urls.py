@@ -15,8 +15,10 @@ urlpatterns = [
     path('report_employees', views.report_employees, name='report_employees'),
 
     path('all_employees/', EmployeeListView.as_view(), name='all_employees'),
+    path('new_employee/', views.new_employee, name='new_employee'),
 
     path('import/', views.import_data, name='import'),
+    path('import/history/', views.import_history, name='import_history'),
 
     path('config/', views.config, name='config'),
 ]

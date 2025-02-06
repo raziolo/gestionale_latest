@@ -4,31 +4,32 @@ from django import forms
 from django.db.models import Q
 
 
-from django.utils.translation import gettext_lazy as _  # Import for translation
 
 class EmployeeFilter(django_filters.FilterSet):
     search = django_filters.CharFilter(
         method='filter_common_search',
-        label=_("Cerca"),  # Translatable label
+        label="Cerca",  # Translatable label
         widget=forms.TextInput(attrs={
             "class": "input input-bordered",
-            "placeholder": _("Search employees...")  # Translatable placeholder
+            "placeholder": "Cerca..."  # Translatable placeholder
         })
     )
     branch = django_filters.ModelChoiceFilter(
         queryset=Branch.objects.all(),
-        empty_label=_("Tutte"),  # Translatable empty label
+        empty_label="Tutte",  # Translatable empty label
+        label="Sede",
         widget=forms.Select(attrs={
             "class": "select select-bordered",
-            'placeholder': _("Tutte")
+            'placeholder': "Tutte"
         })
     )
     role = django_filters.ModelChoiceFilter(
         queryset=Role.objects.all(),
-        empty_label=_("All Roles"),  # Translatable empty label
+        empty_label="Tutti",  # Translatable empty label
+        label="Ruolo",
         widget=forms.Select(attrs={
             "class": "select select-bordered",
-            'placeholder': _("Tutti")
+            'placeholder': "Tutti"
 
         })
     )

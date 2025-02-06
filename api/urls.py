@@ -12,7 +12,6 @@ urlpatterns = [
 
     # EMPLOYEES
     path('all_employees/', views.get_all_employees, name='get_all_employees'),
-    path('new_employee/', views.new_employee, name='new_employee'),
     path('employee_data/<int:employee_id>', views.get_employee_data, name='get_employee_data'),
     path('manage_employee/', views.manage_employee, name='manage_employee'),
     path('get_branch_employees/<int:branch_id>', views.get_branch_employees, name='get_branch_employees'),

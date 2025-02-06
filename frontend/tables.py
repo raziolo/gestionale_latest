@@ -10,12 +10,25 @@ class EmployeeTable(tables.Table):
 
 
 class EmployeePerformancesTable(tables.Table):
-    # Define columns with names matching your dictionary keys.
-    # (You can change the keys in your dictionaries or the column names as needed.)
-    employee = tables.Column(verbose_name="Dipendente")
-    quantita = tables.Column(verbose_name="Quantita'")
-    n_scontrini = tables.Column(verbose_name="N. Scontrini")
-    importo = tables.Column(verbose_name="Importo")
+    employee = tables.Column(
+        verbose_name="Dipendente",
+        attrs={"th": {"class": "text-left text-xl"}, "td": {"class": "font-bold text-left"}}
+    )
+    quantita = tables.Column(
+        verbose_name="Quantità",
+        attrs={"th": {"class": "text-right text-xl"}, "td": {"class": "text-right"}}
+    )
+    n_scontrini = tables.Column(
+        verbose_name="N. Scontrini",
+        attrs={"th": {"class": "text-right text-xl"}, "td": {"class": "text-right"}}
+    )
+    importo = tables.Column(
+        verbose_name="Importo",
+        attrs={"th": {"class": "text-right text-xl"}, "td": {"class": "text-right"}}
+    )
 
     class Meta:
         template_name = "django_tables2/bootstrap.html"
+        attrs = {
+            "class": "table table-striped table-hover w-full text-lg",
+        }

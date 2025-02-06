@@ -7,6 +7,7 @@
   --icon-color: #ffffff; /* Color for dark mode */
   --icons-button-color: #000000;
 
+
 }
 
 [data-theme="night"] {
@@ -17,6 +18,12 @@
 
 [data-theme="coffee"] {
   --icon-color: #ffffff; /* Color for dark mode */
+  --icons-button-color: #000000;
+
+}
+
+[data-theme="valentine"] {
+  --icon-color: #dc57d6; /* Color for dark mode */
   --icons-button-color: #000000;
 
 }
@@ -39,6 +46,32 @@
   --icons-button-color: #000000;
 
 }
+
+[data-theme="synthwave"] {
+  --icon-color: #ffffff; /* Color for dark mode */
+  --icons-button-color: #000000;
+
+}
+
+[data-theme="halloween"] {
+  --icon-color: #eb6123; /* Color for dark mode */
+  --icons-button-color: #000000;
+
+}
+
+[data-theme="luxury"] {
+  --icon-color: #daa44c; /* Color for dark mode */
+  --icons-button-color: #000000;
+
+}
+
+[data-theme="forest"] {
+  --icon-color: #53834a; /* Color for dark mode */
+  --icons-button-color: #000000;
+
+}
+
+
 box-icon {
   fill: var(--icon-color);
 }

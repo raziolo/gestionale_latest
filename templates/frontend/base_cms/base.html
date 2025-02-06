@@ -1,6 +1,23 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en" data-theme="">
+
+<!-- Inline script to set the theme immediately -->
+  <script>
+    (function() {
+      // Minimal inline function to read the cookie and set the theme
+      function getCookie(name) {
+        const cookies = document.cookie.split('; ');
+        const cookie = cookies.find(row => row.startsWith(name + '='));
+        return cookie ? cookie.split('=')[1] : null;
+      }
+
+      const savedTheme = getCookie('theme');
+      // Default to 'lemonade' if no theme cookie is found
+      const initialTheme = savedTheme || 'lemonade';
+      document.documentElement.setAttribute('data-theme', initialTheme);
+    })();
+  </script>
 <head>
     <meta charset="UTF-8">
     <title>{% block title %} {% endblock title %}</title>
@@ -13,14 +30,21 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/yearSelectPlugin.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelectPlugin.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+
 
 
     <link rel="stylesheet" href="{% static 'css/global.css' %}">
 
 
 </head>
-<body>
+<body class="bg-base-100">
 {% include "frontend/base_cms/header.html" %}
 
 {% block content %}
@@ -33,6 +57,10 @@
 
 
 {% endblock custom_js %}
+
+{% block custom_css %}
+
+{% endblock custom_css %}
 
 
 
@@ -85,7 +113,7 @@
   });
 </script>
 
-<footer class="footer footer-center bg-base-300 text-base-content p-4">
+<footer class="footer footer-center bg-base-200 text-base-content p-4">
   <aside>
     <p>2025 - Gestionale 3</p>
   </aside>

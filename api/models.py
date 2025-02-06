@@ -32,7 +32,7 @@ class Role(models.Model):
 class Employee(models.Model):
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    gender = models.CharField(max_length=10)
+    gender = models.CharField(max_length=10, default="F")
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
     role = models.ForeignKey(Role, on_delete=models.CASCADE, default=1)
     extra_data = models.JSONField(default=dict)

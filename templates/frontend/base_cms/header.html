@@ -1,4 +1,4 @@
-<div class="navbar bg-base-100">
+<div class="navbar bg-base-300">
   <div class="navbar-start">
     <!-- (Other dropdowns remain unchanged) -->
     <div class="dropdown">
@@ -16,7 +16,7 @@
       </div>
       <ul tabindex="1" class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow">
         <li><a href="{% url 'all_employees' %}">Tutti i Dipendenti</a></li>
-        <li><a>Nuovo Dipendente</a></li>
+        <li><a href="{% url 'new_employee' %}">Nuovo Dipendente</a></li>
       </ul>
     </div>
     <div class="dropdown">
@@ -25,7 +25,7 @@
       </div>
       <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow">
         <li><a href="{% url 'import' %}">Importa Dati</a></li>
-        <li><a>Storico Imports</a></li>
+        <li><a href="{% url 'import_history' %}">Storico Imports</a></li>
       </ul>
     </div>
   </div>
