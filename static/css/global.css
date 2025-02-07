@@ -22,13 +22,6 @@
 
 }
 
-[data-theme="valentine"] {
-  --icon-color: #dc57d6; /* Color for dark mode */
-  --icons-button-color: #000000;
-
-}
-
-
 [data-theme="sunset"] {
   --icon-color: #ffffff; /* Color for dark mode */
   --icons-button-color: #000000;

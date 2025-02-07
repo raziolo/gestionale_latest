@@ -5,17 +5,17 @@
   <!-- Container for the employee tickets area chart -->
 
  <div class="card bg-base-100 shadow-xl p-6 m-5 text-center">
-        <h1 class="text-2xl font-bold mb-4">Report Performance Scontrini <badge class="badge badge-primary text-white text-xl">{{ branch.name }}</badge> - Dal {{ date_start }} a {{ date_end }}</h1>
+        <h1 class="text-2xl text-info font-bold mb-4">Report Performance Scontrini <badge class="badge bg-base-200 badge-primary p-3 m-3 text-accent text-xl">{{ branch.name }}</badge> - Dal {{ date_start }} a {{ date_end }}</h1>
     <div id="employeeTicketsChart"></div>
     </div>
 
-    <div class="card bg-base-100 shadow-xl p-6 m-5 text-center">
-        <h1 class="text-2xl font-bold mb-4">Report Performance Vendite <badge class="badge badge-primary text-white text-xl">{{ branch.name }}</badge> - Dal {{ date_start }} a {{ date_end }}</h1>
+    <div class="card bg-base-200 shadow-xl p-6 m-5 text-center">
+        <h1 class="text-2xl text-info font-bold mb-4">Report Performance Vendite <badge class="badge bg-base-200 badge-primary p-3 m-3 text-accent text-xl">{{ branch.name }}</badge> - Dal {{ date_start }} a {{ date_end }}</h1>
     <div id="salesPerformanceChart"></div>
     </div>
 
     <div class="card bg-base-100 shadow-xl p-6 m-5 text-center">
-        <h1 class="text-2xl font-bold mb-4">Report Tabellare <badge class="badge badge-primary text-white text-xl">{{ branch.name }}</badge> - Dal {{ date_start }} a {{ date_end }}</h1>
+        <h1 class="text-2xl text-info font-bold mb-4">Report Tabellare <badge class="badge bg-base-200 badge-primary p-3 m-3 text-accent text-xl">{{ branch.name }}</badge> - Dal {{ date_start }} a {{ date_end }}</h1>
         {% render_table performances_table %}
     </div>
 

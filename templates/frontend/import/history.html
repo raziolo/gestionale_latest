@@ -19,8 +19,8 @@
             <label class="label">
               <span class="label-text">Seleziona Sede</span>
             </label>
-            <select class="select select-primary w-full" name="branchSelect">
-              <option disabled selected>Seleziona Sede</option>
+            <select class="select select-primary w-full" name="branchSelect" required>
+              <option value="" disabled selected>Seleziona Sede</option>
               {% for branch in branches %}
                 <option value="{{ branch.id }}">{{ branch.name }}</option>
               {% empty %}
@@ -34,8 +34,8 @@
             <label class="label">
               <span class="label-text">Seleziona Anno</span>
             </label>
-            <select class="select select-primary w-full" name="year">
-              <option disabled selected>Anno</option>
+            <select class="select select-primary w-full" name="year" required>
+              <option value="" disabled selected>Anno</option>
               {% for year in years_list %}
                 <option value="{{ year }}">{{ year }}</option>
               {% endfor %}
@@ -44,7 +44,7 @@
         </div>
 
         <!-- Submit Button -->
-        <button type="submit" class="btn btn-primary w-full max-w-xs">Visualizza Dati</button>
+        <button type="submit" class="btn btn-primary w-full max-w-xs" >Visualizza Dati</button>
       </form>
     </div>
 
@@ -93,10 +93,10 @@ for (const [dateStr, value] of Object.entries(rawData)) {
 const series = [];
 // Optional: a mapping for month names (feel free to use Italian names if you prefer)
 const monthNames = {
-  "01": "January", "02": "February", "03": "March",
-  "04": "April",   "05": "May",      "06": "June",
-  "07": "July",    "08": "August",   "09": "September",
-  "10": "October", "11": "November", "12": "December"
+  "01": "Gennaio", "02": "Febbraio", "03": "Marzo",
+  "04": "Aprile",   "05": "Maggio",      "06": "Giugno",
+  "07": "Luglio",    "08": "Agosto",   "09": "Settembre",
+  "10": "Ottobre", "11": "Novembre", "12": "Dicembre"
 };
 
 for (let m = 1; m <= 12; m++) {
@@ -108,7 +108,7 @@ for (let m = 1; m <= 12; m++) {
         const testDate = new Date(selectedYear, m - 1, d);
         if (testDate.getMonth() !== m - 1) {
             // Mark invalid/inexistent days as -2
-            dataPoints.push({ x: d.toString(), y: -1 });
+            dataPoints.push({ x: d.toString(), y: -2 });
         } else {
             // For valid days, use the value from our mapping (should be 1, 0, or -1)
             // (We default to 0 just in case, though your view already creates a full mapping.)

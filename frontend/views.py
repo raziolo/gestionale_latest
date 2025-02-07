@@ -144,6 +144,75 @@ def import_data(request):
 
             return JsonResponse({"status" : "success", "errors": []}, status=200)
 
+        elif branch_obj.get_brand() == "original":
+            print("original")
+
+            ### START CONVERTING DATA
+
+            if uploaded_file:
+                # Read the file as binary
+                file_content = uploaded_file.read()
+
+                # Load the workbook from the binary data
+                workbook = load_workbook(filename=BytesIO(file_content))
+                sheet = workbook.active  # You can specify sheet name if needed
+
+                # Initialize the dictionary to hold the data
+                data_dict = {}
+
+                errors = []
+
+                total_rows = sheet.max_row
+
+                # Iterate through the rows, skipping the header
+                for row in sheet.iter_rows(min_row=2, values_only=True):  # Skip the header row
+
+                    if row[1] in ["Totale generale", "Totali "]:
+                        continue
+
+
+                    date = row[1]  # assuming the date is in the second column
+                    record = {
+                        "Qta. Vend.": row[2],
+                        "Sco.": row[3],
+                        "Importo": row[4],
+                        "Sco. Medio": row[5],
+                        "Qta Media": row[6]
+                    }
+                    if Import.objects.filter(branch=branch_obj, import_date=date):
+                        errors.append(f"Collision on {date}")
+                        continue
+
+                    data_dict[date] = [record]
+
+                import_qs = Import.objects.none()
+
+                if errors:
+                    return JsonResponse({"status": "error", "errors": errors}, status=200)
+
+                data_dict_formatted = {}
+
+                data_dict = {k: v for k, v in data_dict.items() if k is not None}
+
+                for k,v in data_dict.items():
+
+                    unformatted = k
+                    date_strp = datetime.strptime(unformatted, '%d/%m/%Y')
+                    date_str = date_strp.strftime('%Y-%m-%d')
+                    data_dict_formatted[date_str] = v
+
+                import_bulk_create_list = []
+                for date, data in data_dict_formatted.items():
+                    i = Import(import_date=date, data=data, branch=branch_obj)
+                    import_bulk_create_list.append(i)
+
+                Import.objects.bulk_create(import_bulk_create_list)
+
+
+
+            return JsonResponse({"status": "success", "errors": []}, status=200)
+
+
 
 def filter(request):
     if request.method == "POST":
@@ -205,16 +274,31 @@ def report_branch(request):
 
         # Generate the report (adjust parameters as needed)
         sc = f.generate_branch_report_scontrini(branch_id, date_start, date_end)
+        sc_total = int(sum(sc.values())) ## TOTALE SCONTRINI
+
+
         branch = Branch.objects.get(id=branch_id)
 
         sales = f.generate_branch_report_sales(branch_id, date_start, date_end)
+        sales_total = sum(sales.values())
+        sales_total = round(sales_total, 2)
+
+        zoom_enabled = "false"
+
+        if len(sales) > 30:
+            zoom_enabled = "true"
+
 
         context = {
             "sc": sc,
+            "sc_total": sc_total,
+            "sales_total": sales_total,
+            "brand": branch.get_brand(),
             "date_start": date_start,
             "branch": branch,
             "date_end": date_end,
             "sales": sales,
+            "zoom_enabled": zoom_enabled,
         }
 
         return render(request, "frontend/report/sede.html", context)
@@ -314,6 +398,7 @@ def import_history(request):
 
         return render(request, "frontend/import/history.html", {
             'years_list': years_list,
+            'year': current_year,
         })
 
     elif request.method == 'POST':
@@ -326,6 +411,11 @@ def import_history(request):
             branch = Branch.objects.get(id=branch_id)
         except Branch.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Branch not found'})
+
+        try:
+            m_year = int(year)
+        except ValueError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid year'})
 
         imports_objs_qs = Import.objects.filter(branch=branch)
         imports_objs_qs_filtered = Import.objects.none()

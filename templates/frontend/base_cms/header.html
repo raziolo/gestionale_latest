@@ -72,7 +72,7 @@
     <!-- Employee Filter Dropdown -->
     <div class="dropdown dropdown-end" id="employeeFilterDropdown">
       <button class="btn btn-ghost btn-circle">
-        <box-icon name="data"></box-icon>
+        <box-icon name="group"></box-icon>
       </button>
       <div id="employeeDropdownContent" tabindex="0" class="dropdown-content bg-base-100 rounded-box shadow-lg w-80 p-4 z-50 overflow-visible">
         <h2 class="text-sm font-bold mb-2">Report Dipendenti</h2>
@@ -211,8 +211,8 @@ function sendBranchFilterData() {
 
   // Show a loading indicator using SweetAlert2
   Swal.fire({
-    title: 'Please wait...',
-    text: 'Generating report...',
+    title: 'Attendere...',
+    text: 'Generazione Report...',
     allowOutsideClick: false,
     didOpen: () => {
       Swal.showLoading();

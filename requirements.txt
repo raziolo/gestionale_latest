@@ -7,3 +7,4 @@ openpyxl
 django-tables2
 django-filter
 crispy-tailwind
+django-widget-tweaks

@@ -236,7 +236,6 @@ def generate_report_performance_sales(branch_id, start_date, end_date):
                     # Convert the performance value to float.
                     # (Adjust this conversion if you prefer Decimal arithmetic.)
                     value = float(employee_data['Importo'].replace(".", "").replace(",", "."))
-                    print(value)
 
                 except (KeyError, ValueError):
                     value = 0
@@ -280,10 +279,17 @@ def get_branch_single_day_sales(branch_id, date):
     if import_objs_qs.count() > 0:
         for import_obj in import_objs_qs:
             data = import_obj.data
-            for employee_data in data:
-                value = Decimal(employee_data['Importo'].replace(".", "").replace(",", "."))
-                rounded_value = value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-                sales += rounded_value
+
+            if branch.get_brand() == "equivalenza":
+                for employee_data in data:
+                    value = Decimal(employee_data['Importo'].replace(".", "").replace(",", "."))
+                    rounded_value = value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                    sales += rounded_value
+            elif branch.get_brand() == "original":
+                data = data[0]
+                sales += data["Importo"]
+
+
 
     return sales
 
