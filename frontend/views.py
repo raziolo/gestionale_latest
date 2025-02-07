@@ -284,9 +284,12 @@ def report_branch(request):
         sales_total = round(sales_total, 2)
 
         zoom_enabled = "false"
+        graph_type = "area"
 
         if len(sales) > 30:
             zoom_enabled = "true"
+            graph_type = "area"
+
 
 
         context = {
@@ -299,6 +302,7 @@ def report_branch(request):
             "date_end": date_end,
             "sales": sales,
             "zoom_enabled": zoom_enabled,
+            "type" : graph_type,
         }
 
         return render(request, "frontend/report/sede.html", context)
@@ -314,6 +318,8 @@ def report_employees(request):
         branch_param = request.GET.get('branch')
         date_param = request.GET.get('date')
 
+
+
         # Validate branch parameter
         if not branch_param:
             return JsonResponse({"status": "error", "errors": ["No branch selected"]}, status=400)
@@ -321,6 +327,14 @@ def report_employees(request):
             branch_id = int(branch_param)
         except ValueError:
             return JsonResponse({"status": "error", "errors": ["Invalid branch ID"]}, status=400)
+
+        try:
+            branch = Branch.objects.get(id=branch_id)
+        except Branch.DoesNotExist:
+            return JsonResponse({"status": "error", "errors": ["Branch not found"]}, status=400)
+
+        if branch.get_brand() == "original":
+            return JsonResponse({"status": "error", "errors": ["Original Marines No Employee Performances"]}, status=400)
 
         # Convert the date parameter to string (it may be None)
         date = str(date_param) if date_param else ""
@@ -371,6 +385,23 @@ def report_employees(request):
 
         performances_table = EmployeePerformancesTable(performance_table_data, orderable=False)
 
+        zoom_enabled = "true"
+        graph_type = "area"
+
+        if date_start == date_end:
+            zoom_enabled = "false"
+            graph_type = "bar"
+
+        total_sales = sum([sum(sales) for sales in sales_performance.values()])
+        total_sc = sum([sum(sc) for sc in sc_performance.values()])
+
+        # Calculate the percentage for each employee within each KPI
+        sales_percentage = {key: round((sum(sales) / total_sales) * 100, 2) if total_sales != 0 else 0
+                            for key, sales in sales_performance.items()}
+        sc_percentage = {key: round((sum(sc) / total_sc) * 100, 2) if total_sc != 0 else 0
+                         for key, sc in sc_performance.items()}
+
+
         context = {
             "sc_performance": sc_performance,
             "branch": Branch.objects.get(id=branch_id),
@@ -378,7 +409,10 @@ def report_employees(request):
             "date_end": date_end,
             "sales_performance": sales_performance,
             "performances_table": performances_table,
-
+            "sales_percentage": sales_percentage,
+            "sc_percentage": sc_percentage,
+            "zoom_enabled": zoom_enabled,
+            "type" : graph_type,
         }
 
         return render(request, "frontend/report/employees.html", context)
