@@ -28,6 +28,8 @@
         <li><a href="{% url 'import_history' %}">Storico Imports</a></li>
       </ul>
     </div>
+
+
   </div>
 
   <div class="navbar-center">
@@ -111,7 +113,50 @@
           </div>
         </form>
       </div>
+
     </div>
+
+  <!-- Employee Filter Dropdown -->
+    <div class="dropdown dropdown-end" id="counterFilterDropdown">
+      <button class="btn btn-ghost btn-circle">
+        <box-icon name='tachometer'></box-icon>
+      </button>
+      <div id="counterDropdownContent" tabindex="0" class="dropdown-content bg-base-100 rounded-box shadow-lg w-80 p-4 z-50 overflow-visible">
+        <h2 class="text-sm font-bold mb-2">Report Contapersone</h2>
+        <form>
+          {% csrf_token %}
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text">Sede</span>
+            </label>
+            <select class="select select-bordered" id="CounterBranchFilter">
+              <option disabled selected>Seleziona Sede</option>
+              {% for branch in branches %}
+                <option value="{{ branch.id }}">{{ branch.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-control mb-4">
+            <label class="label">
+              <span class="label-text">Seleziona Date</span>
+            </label>
+            <input id="CounterFilterdatePicker" type="text" class="input input-bordered w-full" autocomplete="off"/>
+          </div>
+
+        <div class="mt-4 flex justify-end gap-2">
+            <p class="text2xl font-bold text-warning mb-4 text-center">!!! SOLO DATI 2024 !!!</p>
+          </div>
+
+          <div class="mt-4 flex justify-end gap-2">
+            <button id="counterClearBtn" class="btn btn-sm btn-secondary">Clear</button>
+            <button id="counterApplyBtn" class="btn btn-sm btn-primary">Apply</button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+
+
 
     {% include "frontend/base_cms/themeToggle.html" %}
   </div>
@@ -126,6 +171,7 @@ document.addEventListener("DOMContentLoaded", function() {
   // -------------------------
   const branchDropdownContent = document.getElementById("branchDropdownContent");
   const branchDropdown = document.getElementById("branchFilterDropdown");
+
   const branchApplyBtn = document.getElementById("BranchApplyBtn");
   const branchClearBtn = document.getElementById("BranchClearBtn");
 
@@ -212,6 +258,52 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 });
 
+
+// -------------------------
+  // Counter Filter Dropdown
+  // -------------------------
+  const counterDropdownContent = document.getElementById("counterDropdownContent");
+  const counterDropdown = document.getElementById("counterFilterDropdown");
+  const counterApplyBtn = document.getElementById("counterApplyBtn");
+  const counterClearBtn = document.getElementById("counterClearBtn");
+
+  // Initialize Flatpickr for employee filter
+  flatpickr("#CounterFilterdatePicker", {
+    mode: "range",
+    dateFormat: "Y-m-d",
+    allowInput: true,
+    appendTo: counterDropdownContent,
+    static: true
+  });
+
+  // Prevent employee dropdown from closing when clicking inside its content
+  counterDropdownContent.addEventListener("click", function(event) {
+    event.stopPropagation();
+  });
+
+  // Close employee dropdown when clicking outside
+  document.addEventListener("click", function(event) {
+    if (!counterDropdown.contains(event.target)) {
+      counterDropdownContent.classList.remove("dropdown-open");
+    }
+  });
+
+  counterApplyBtn.addEventListener("click", function(event) {
+    event.preventDefault(); // Prevent form submission
+    counterDropdownContent.classList.remove("dropdown-open");
+    console.log("Filter applied for employees!");
+    sendCounterFilterData();
+  });
+
+  counterClearBtn.addEventListener("click", function(event) {
+    event.preventDefault(); // Prevent form submission
+    counterDropdownContent.classList.remove("dropdown-open");
+    console.log("Filter cleared for employees!");
+    // Reset the employee filter form
+    document.getElementById("CounterBranchFilter").selectedIndex = 0;
+    document.getElementById("CounterFilterdatePicker").value = "";
+  });
+
 // Function to send branch filter data via AJAX
 function sendBranchFilterData() {
   const selectedBranch = document.getElementById("BranchFilter").value;
@@ -282,6 +374,50 @@ function sendEmployeeFilterData() {
     },
     body: JSON.stringify({
       type: 'employees',
+      branch: selectedBranch,
+      date: date,
+    }),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      Swal.close();
+      if (data.redirect_url) {
+        window.location.href = data.redirect_url;
+      } else {
+        Swal.fire("Error", "No redirect URL received.", "error");
+      }
+    })
+    .catch((error) => {
+      Swal.close();
+      console.error("Error:", error);
+      Swal.fire("Error", "An error occurred while generating the report.", "error");
+    });
+}
+
+function sendCounterFilterData() {
+  const selectedBranch = document.getElementById("CounterBranchFilter").value;
+  const date = document.getElementById("CounterFilterdatePicker").value;
+  console.log("Branch Filter - Branch:", selectedBranch);
+  console.log("Branch Filter - Date:", date);
+
+  // Show a loading indicator using SweetAlert2
+  Swal.fire({
+    title: 'Attendere...',
+    text: 'Generazione Report...',
+    allowOutsideClick: false,
+    didOpen: () => {
+      Swal.showLoading();
+    }
+  });
+
+  fetch('{% url "filter" %}', {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value
+    },
+    body: JSON.stringify({
+      type: 'counter',
       branch: selectedBranch,
       date: date,
     }),

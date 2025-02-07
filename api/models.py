@@ -63,6 +63,7 @@ class Import(models.Model):
 
     import_date = models.CharField(default="", max_length=100)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
+    import_type = models.CharField(max_length=100, default="")
     data = models.JSONField(default=dict)
 
     def __str__(self):

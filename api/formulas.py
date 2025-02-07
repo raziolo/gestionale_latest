@@ -25,7 +25,7 @@ def get_scontrini_dipendente_single_date(employee_id, date):
         branch = employee.branch
 
     try:
-        import_obj = Import.objects.get(import_date=date, branch=branch)
+        import_obj = Import.objects.get(import_date=date, branch=branch, import_type="sales_data")
     except Import.DoesNotExist:
         print("no impp")
 
@@ -51,7 +51,7 @@ def get_scontrini_dipendente_date_range(employee_id, start_date, end_date):
         branch = employee.branch
 
     try:
-        import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch)
+        import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="sales_data")
     except Import.DoesNotExist:
         print("no impp")
 
@@ -78,7 +78,7 @@ def get_total_scontrini_single_date(branch_id, date):
         print("no branch")
 
     try:
-        import_objs_qs = Import.objects.filter(import_date=date, branch=branch)
+        import_objs_qs = Import.objects.filter(import_date=date, branch=branch, import_type="sales_data")
     except Import.DoesNotExist:
         print("no impp")
 
@@ -104,7 +104,7 @@ def generate_branch_report_scontrini(branch_id, start_date, end_date):
         print("no branch")
 
     try:
-        import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch)
+        import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="sales_data")
     except Import.DoesNotExist:
         print("no impp")
 
@@ -132,7 +132,7 @@ def generate_report_performance_scontrini(branch_id, start_date, end_date):
         return {}, []
 
     # Get import objects and employees for the branch
-    import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch)
+    import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="sales_data")
     employees_objs_qs = Employee.objects.filter(branch=branch)
 
     # Create a date range list from start_date to end_date (inclusive)
@@ -198,7 +198,7 @@ def generate_report_performance_sales(branch_id, start_date, end_date):
         return {}, []
 
     # Get import objects and employees for the branch
-    import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch)
+    import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="sales_data")
     employees_objs_qs = Employee.objects.filter(branch=branch)
 
     # Create a date range list from start_date to end_date (inclusive)
@@ -269,7 +269,7 @@ def get_branch_single_day_sales(branch_id, date):
         print("no branch")
 
     try:
-        import_objs_qs = Import.objects.filter(import_date=date, branch=branch)
+        import_objs_qs = Import.objects.filter(import_date=date, branch=branch, import_type="sales_data")
     except Import.DoesNotExist:
         print("no impp")
 
@@ -304,7 +304,7 @@ def generate_branch_report_sales(branch_id, start_date, end_date):
         print("no branch")
 
     try:
-        import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch)
+        import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="sales_data")
     except Import.DoesNotExist:
         print("no impp")
 
@@ -332,7 +332,7 @@ def get_number_sales_performance_single_date(employee_id, date):
         branch = employee.branch
 
     try:
-        import_obj = Import.objects.get(import_date=date, branch=branch)
+        import_obj = Import.objects.get(import_date=date, branch=branch, import_type="sales_data")
     except Import.DoesNotExist:
         print("no impp")
 
@@ -359,7 +359,7 @@ def get_number_sales_performance_employee_date_range(employee_id, start_date, en
         branch = employee.branch
 
     try:
-        import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch)
+        import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="sales_data")
     except Import.DoesNotExist:
         print("no impp")
 
@@ -387,7 +387,7 @@ def generate_number_sales_performance(branch_id, start_date, end_date):
         print("no branch")
 
     try:
-        import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch)
+        import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="sales_data")
     except Import.DoesNotExist:
         print("no impp")
 
@@ -435,3 +435,249 @@ def generate_medium_sales_performance(sales_performance):
         medium_sales_performance_data[key] = round(sum(value)/len(value), 2)
 
     return medium_sales_performance_data
+
+
+#### COUNTER
+
+
+def get_number_ingressi_single_date(branch_id, date):
+
+    branch = None
+    import_obj = None
+
+    try:
+        branch = Branch.objects.get(id=branch_id)
+    except Branch.DoesNotExist:
+        print("no branch")
+
+    try:
+        import_obj = Import.objects.get(import_date=date, branch=branch, import_type="counter_data")
+    except Import.DoesNotExist:
+        print("no impp")
+
+    data = import_obj.data
+    for counter_data in data:
+        return counter_data['(Ing) Ingressi']
+
+    return 0
+
+def get_traffico_esterno_single_date(branch_id, date):
+
+    branch = None
+    import_obj = None
+
+    try:
+        branch = Branch.objects.get(id=branch_id)
+    except Branch.DoesNotExist:
+        print("no branch")
+
+    try:
+        import_obj = Import.objects.get(import_date=date, branch=branch, import_type="counter_data")
+    except Import.DoesNotExist:
+        print("no impp")
+
+    data = import_obj.data
+    for counter_data in data:
+        return counter_data['(Est) Traffico Esterno']
+
+    return 0
+
+def get_tasso_attrazione_single_date(branch_id, date):
+
+    branch = None
+    import_obj = None
+
+    try:
+        branch = Branch.objects.get(id=branch_id)
+    except Branch.DoesNotExist:
+        print("no branch")
+
+    try:
+        import_obj = Import.objects.get(import_date=date, branch=branch, import_type="counter_data")
+    except Import.DoesNotExist:
+        print("no impp")
+
+    data = import_obj.data
+    for counter_data in data:
+        return counter_data['(TA) Tasso di Attrazione']
+
+    return 0
+
+
+def get_number_ingressi_date_range(branch_id, start_date, end_date):
+
+    branch = None
+    import_objs_qs = None
+
+    try:
+        branch = Branch.objects.get(id=branch_id)
+    except Branch.DoesNotExist:
+        print("no branch")
+
+    try:
+        import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="counter_data")
+    except Import.DoesNotExist:
+        print("no impp")
+
+    grand_total = 0
+
+    if import_objs_qs.count() > 0:
+        for import_obj in import_objs_qs:
+            data = import_obj.data
+            for counter_data in data:
+                grand_total += int(counter_data['(Ing) Ingressi'])
+
+    return grand_total
+
+
+def get_traffico_esterno_date_range(branch_id, start_date, end_date):
+
+    branch = None
+    import_objs_qs = None
+
+    try:
+        branch = Branch.objects.get(id=branch_id)
+    except Branch.DoesNotExist:
+        print("no branch")
+
+    try:
+        import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="counter_data")
+    except Import.DoesNotExist:
+        print("no impp")
+
+    grand_total = 0
+
+    if import_objs_qs.count() > 0:
+        for import_obj in import_objs_qs:
+            data = import_obj.data
+            for counter_data in data:
+                grand_total += int(counter_data['(Est) Traffico Esterno'])
+
+    return grand_total
+
+
+def get_tasso_attrazione_date_range(branch_id, start_date, end_date):
+
+    branch = None
+    import_objs_qs = None
+
+    try:
+        branch = Branch.objects.get(id=branch_id)
+    except Branch.DoesNotExist:
+        print("no branch")
+
+    try:
+        import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="counter_data")
+    except Import.DoesNotExist:
+        print("no impp")
+
+    grand_total = 0
+
+    if import_objs_qs.count() > 0:
+        for import_obj in import_objs_qs:
+            data = import_obj.data
+            for counter_data in data:
+                grand_total += int(counter_data['(TA) Tasso di Attrazione'])
+
+    return grand_total
+
+
+
+def generate_ingressi_branch_report(branch_id, start_date, end_date):
+
+    branch = None
+    import_objs_qs = None
+
+    try:
+        branch = Branch.objects.get(id=branch_id)
+    except Branch.DoesNotExist:
+        print("no branch")
+
+    try:
+        import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="counter_data")
+    except Import.DoesNotExist:
+        print("no impp")
+
+    print(import_objs_qs.count())
+
+    # data = {"YYYY/MM/DD": 203, "YYYY/MM/DD": 101}
+
+    data = {}
+
+    for import_obj in import_objs_qs:
+        data[import_obj.import_date] = get_number_ingressi_single_date(branch_id, import_obj.import_date)
+
+    return data
+
+
+def generate_branch_traffico_esterno_report(branch_id, start_date, end_date):
+
+    branch = None
+    import_objs_qs = None
+
+    try:
+        branch = Branch.objects.get(id=branch_id)
+    except Branch.DoesNotExist:
+        print("no branch")
+
+    try:
+        import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="counter_data")
+    except Import.DoesNotExist:
+        print("no impp")
+
+    # data = {"YYYY/MM/DD": 203, "YYYY/MM/DD": 101}
+
+    data = {}
+
+    for import_obj in import_objs_qs:
+        data[import_obj.import_date] = get_traffico_esterno_single_date(branch_id, import_obj.import_date)
+
+    return data
+
+def generate_branch_tasso_attrazione_report(branch_id, start_date, end_date):
+
+    branch = None
+    import_objs_qs = None
+
+    try:
+        branch = Branch.objects.get(id=branch_id)
+    except Branch.DoesNotExist:
+        print("no branch")
+
+    try:
+        import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="counter_data")
+    except Import.DoesNotExist:
+        print("no impp")
+
+    # data = {"YYYY/MM/DD": 203, "YYYY/MM/DD": 101}
+
+    data = {}
+
+    for import_obj in import_objs_qs:
+        data[import_obj.import_date] = get_tasso_attrazione_single_date(branch_id, import_obj.import_date)
+
+    return data
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

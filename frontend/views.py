@@ -47,6 +47,9 @@ def import_data(request):
         # Get the uploaded file
         uploaded_file = request.FILES.get('file')
         selected_branch = request.POST.get('branchSelect')
+        selected_type = request.POST.get('typeSelect')
+
+
 
         try:
             selected_branch = int(selected_branch)
@@ -63,154 +66,250 @@ def import_data(request):
         if branch_obj.get_brand() == "equivalenza":
             print("equivalenza")
 
-            ### START CONVERTING DATA
+            if selected_type == "counter_data":
+                if uploaded_file:
+                    # Read the file as binary
+                    file_content = uploaded_file.read()
 
-            if uploaded_file:
-                # Read the file as binary
-                file_content = uploaded_file.read()
+                    # Load the workbook from the binary data
+                    workbook = load_workbook(filename=BytesIO(file_content))
+                    sheet = workbook.active  # You can specify sheet name if needed
 
-                # Load the workbook from the binary data
-                workbook = load_workbook(filename=BytesIO(file_content))
-                sheet = workbook.active  # You can specify sheet name if needed
+                    # Initialize the dictionary to hold the data
+                    data_dict = {}
 
-                # Initialize the dictionary to hold the data
-                data_dict = {}
+                    errors = []
 
-                # Iterate through the rows, skipping the header
-                for row in sheet.iter_rows(min_row=2, values_only=True):  # Skip the header row
-                    date = row[1]  # assuming the date is in the second column
-                    record = {
-                        "Dipendente": row[0],
-                        "Qta. Vend.": row[2],
-                        "Sco.": row[3],
-                        "Importo": row[4],
-                        "Sco. Medio": row[5],
-                        "Qta Media": row[6]
-                    }
+                    total_rows = sheet.max_row
 
-                    # If the date is already a key, append the new record to its list
-                    if date in data_dict:
-                        data_dict[date].append(record)
-                    else:
-                        # Otherwise, create a new list with the record
+                    # Iterate through the rows, skipping the header
+                    for row in sheet.iter_rows(min_row=2, values_only=True):  # Skip the header row
+                        date = row[0]  # assuming the date is in the second column
+                        record = {
+                            "(Ing) Ingressi": row[1] or 0,
+                            "(Est) Traffico Esterno": row[2] or 0,
+                            "(TA) Tasso di Attrazione": row[3] or 0,
+                        }
+
+                        # mar-19.11.24 to YYYY/MM/DD
+                        date = date.split("-")[1]
+                        date = datetime.strptime(date, "%d.%m.%y").strftime("%Y-%m-%d")
+
+
+                        # If the date is already a key, overwrite the current record
+                        if date in data_dict:
+
+                            data_dict[date] = record
+                        else:
+                            # Otherwise, create a new list with the record
+                            data_dict[date] = [record]
+
+
                         data_dict[date] = [record]
 
-                import_qs = Import.objects.none()
 
-                errors = []
-
-                for date, records in data_dict.items():
-                    employees_day_id_list = []
-
-                    for record in records:
-                        try:
-                            employees_day_id_list.append(record['Dipendente'])
-                        except:
-                            errors.append(f"Employee {record['Dipendente']} not found")
+                    for date, records in data_dict.items():
+                        if Import.objects.filter(branch=branch_obj, import_date=date, import_type=selected_type).exists():
+                            errors.append(f"Collision on {date}")
                             continue
 
-                    employees_day_qs = Employee.objects.filter(id__in=employees_day_id_list)
 
-                    if employees_day_qs.count() != len(employees_day_id_list):
-                        errors.append(f"Employees on {date} not found")
-                        continue
+                    if errors:
+                        return JsonResponse({"status": "error", "errors": errors}, status=200)
 
-                    branch_check_value = list(employees_day_qs.values_list('branch', flat=True))
-                    normalized = list(dict.fromkeys(branch_check_value))
-                    if len(normalized) != 1:
-                        errors.append(f"Branch on {date} from different branch")
-                        continue
+                    import_bulk_create_list = []
+                    for date, data in data_dict.items():
+                        i = Import(import_date=date, data=data, branch=branch_obj, import_type=selected_type)
+                        import_bulk_create_list.append(i)
 
-                    if normalized[0] != selected_branch:
-                        errors.append(f"Branch on {date} from different branch")
-                        continue
+                    Import.objects.bulk_create(import_bulk_create_list)
 
-                    if Import.objects.filter(branch=branch_obj, import_date=date):
-                        errors.append(f"Collision on {date}")
-                        continue
+                    return JsonResponse({"status": "success"}, status=200)
 
-                if errors:
-                    return JsonResponse({"status": "error", "errors": errors}, status=200)
+            ### START CONVERTING DATA
+            elif selected_type == "sales_data":
+                if uploaded_file:
+                    # Read the file as binary
+                    file_content = uploaded_file.read()
 
-                import_bulk_create_list = []
-                for date, data in data_dict.items():
-                    date_obj = datetime.strptime(date, '%d/%m/%Y')
-                    date_str = date_obj.strftime('%Y-%m-%d')
-                    i = Import(import_date=date_str, data=data, branch=branch_obj)
-                    import_bulk_create_list.append(i)
+                    # Load the workbook from the binary data
+                    workbook = load_workbook(filename=BytesIO(file_content))
+                    sheet = workbook.active  # You can specify sheet name if needed
 
-                Import.objects.bulk_create(import_bulk_create_list)
+                    # Initialize the dictionary to hold the data
+                    data_dict = {}
+
+                    # Iterate through the rows, skipping the header
+                    for row in sheet.iter_rows(min_row=2, values_only=True):  # Skip the header row
+                        date = row[1]  # assuming the date is in the second column
+                        record = {
+                            "Dipendente": row[0],
+                            "Qta. Vend.": row[2],
+                            "Sco.": row[3],
+                            "Importo": row[4],
+                            "Sco. Medio": row[5],
+                            "Qta Media": row[6]
+                        }
+
+                        # If the date is already a key, append the new record to its list
+                        if date in data_dict:
+                            data_dict[date].append(record)
+                        else:
+                            # Otherwise, create a new list with the record
+                            data_dict[date] = [record]
+
+                    import_qs = Import.objects.none()
+
+                    errors = []
+
+                    for date, records in data_dict.items():
+                        employees_day_id_list = []
+
+                        for record in records:
+                            try:
+                                employees_day_id_list.append(record['Dipendente'])
+                            except:
+                                errors.append(f"Employee {record['Dipendente']} not found")
+                                continue
+
+                        employees_day_qs = Employee.objects.filter(id__in=employees_day_id_list)
+
+                        if employees_day_qs.count() != len(employees_day_id_list):
+                            errors.append(f"Employees on {date} not found")
+                            continue
+
+                        branch_check_value = list(employees_day_qs.values_list('branch', flat=True))
+                        normalized = list(dict.fromkeys(branch_check_value))
+                        if len(normalized) != 1:
+                            errors.append(f"Branch on {date} from different branch")
+                            continue
+
+                        if normalized[0] != selected_branch:
+                            errors.append(f"Branch on {date} from different branch")
+                            continue
+
+                        if Import.objects.filter(branch=branch_obj, import_date=date):
+                            errors.append(f"Collision on {date}")
+                            continue
+
+                    if errors:
+                        return JsonResponse({"status": "error", "errors": errors}, status=200)
+
+                    import_bulk_create_list = []
+                    for date, data in data_dict.items():
+                        date_obj = datetime.strptime(date, '%d/%m/%Y')
+                        date_str = date_obj.strftime('%Y-%m-%d')
+                        i = Import(import_date=date_str, data=data, branch=branch_obj, import_type=selected_type)
+                        import_bulk_create_list.append(i)
+
+                    Import.objects.bulk_create(import_bulk_create_list)
 
 
-            return JsonResponse({"status" : "success", "errors": []}, status=200)
+                return JsonResponse({"status" : "success", "errors": []}, status=200)
 
         elif branch_obj.get_brand() == "original":
             print("original")
 
+            if selected_type == "counter_data":
+                if uploaded_file:
+                    # Read the file as binary
+                    file_content = uploaded_file.read()
+
+                    # Load the workbook from the binary data
+                    workbook = load_workbook(filename=BytesIO(file_content))
+                    sheet = workbook.active  # You can specify sheet name if needed
+
+                    # Initialize the dictionary to hold the data
+                    data_dict = {}
+
+                    errors = []
+
+                    total_rows = sheet.max_row
+
+
+
+                    # Iterate through the rows, skipping the header
+                    for row in sheet.iter_rows(min_row=2, values_only=True):  # Skip the header row
+
+
+
+                        date = row[0]  # assuming the date is in the second column
+                        record = {
+                            "(Ing) Ingressi": row[1],
+                            "(Est) Traffico Esterno": row[2],
+                            "(TA) Tasso di Attrazione": row[3],
+                        }
+
+                        data_dict[date] = [record]
+
+                    print(data_dict)
+
+
             ### START CONVERTING DATA
+            elif selected_type == "sales_data":
 
-            if uploaded_file:
-                # Read the file as binary
-                file_content = uploaded_file.read()
+                if uploaded_file:
+                    # Read the file as binary
+                    file_content = uploaded_file.read()
 
-                # Load the workbook from the binary data
-                workbook = load_workbook(filename=BytesIO(file_content))
-                sheet = workbook.active  # You can specify sheet name if needed
+                    # Load the workbook from the binary data
+                    workbook = load_workbook(filename=BytesIO(file_content))
+                    sheet = workbook.active  # You can specify sheet name if needed
 
-                # Initialize the dictionary to hold the data
-                data_dict = {}
+                    # Initialize the dictionary to hold the data
+                    data_dict = {}
 
-                errors = []
+                    errors = []
 
-                total_rows = sheet.max_row
+                    total_rows = sheet.max_row
 
-                # Iterate through the rows, skipping the header
-                for row in sheet.iter_rows(min_row=2, values_only=True):  # Skip the header row
+                    # Iterate through the rows, skipping the header
+                    for row in sheet.iter_rows(min_row=2, values_only=True):  # Skip the header row
 
-                    if row[1] in ["Totale generale", "Totali "]:
-                        continue
-
-
-                    date = row[1]  # assuming the date is in the second column
-                    record = {
-                        "Qta. Vend.": row[2],
-                        "Sco.": row[3],
-                        "Importo": row[4],
-                        "Sco. Medio": row[5],
-                        "Qta Media": row[6]
-                    }
-                    if Import.objects.filter(branch=branch_obj, import_date=date):
-                        errors.append(f"Collision on {date}")
-                        continue
-
-                    data_dict[date] = [record]
-
-                import_qs = Import.objects.none()
-
-                if errors:
-                    return JsonResponse({"status": "error", "errors": errors}, status=200)
-
-                data_dict_formatted = {}
-
-                data_dict = {k: v for k, v in data_dict.items() if k is not None}
-
-                for k,v in data_dict.items():
-
-                    unformatted = k
-                    date_strp = datetime.strptime(unformatted, '%d/%m/%Y')
-                    date_str = date_strp.strftime('%Y-%m-%d')
-                    data_dict_formatted[date_str] = v
-
-                import_bulk_create_list = []
-                for date, data in data_dict_formatted.items():
-                    i = Import(import_date=date, data=data, branch=branch_obj)
-                    import_bulk_create_list.append(i)
-
-                Import.objects.bulk_create(import_bulk_create_list)
+                        if row[1] in ["Totale generale", "Totali "]:
+                            continue
 
 
+                        date = row[1]  # assuming the date is in the second column
+                        record = {
+                            "Qta. Vend.": row[2],
+                            "Sco.": row[3],
+                            "Importo": row[4],
+                            "Sco. Medio": row[5],
+                            "Qta Media": row[6]
+                        }
+                        if Import.objects.filter(branch=branch_obj, import_date=date):
+                            errors.append(f"Collision on {date}")
+                            continue
 
-            return JsonResponse({"status": "success", "errors": []}, status=200)
+                        data_dict[date] = [record]
+
+                    import_qs = Import.objects.none()
+
+                    if errors:
+                        return JsonResponse({"status": "error", "errors": errors}, status=200)
+
+                    data_dict_formatted = {}
+
+                    data_dict = {k: v for k, v in data_dict.items() if k is not None}
+
+                    for k,v in data_dict.items():
+
+                        unformatted = k
+                        date_strp = datetime.strptime(unformatted, '%d/%m/%Y')
+                        date_str = date_strp.strftime('%Y-%m-%d')
+                        data_dict_formatted[date_str] = v
+
+                    import_bulk_create_list = []
+                    for date, data in data_dict_formatted.items():
+                        i = Import(import_date=date, data=data, branch=branch_obj, import_type=selected_type)
+                        import_bulk_create_list.append(i)
+
+                    Import.objects.bulk_create(import_bulk_create_list)
+
+
+
+                return JsonResponse({"status": "success", "errors": []}, status=200)
 
 
 
@@ -234,6 +333,10 @@ def filter(request):
         elif filter_type == "employees":
 
             redirect_url = "/report_employees?branch={}&date={}".format(branch, date)
+
+        elif filter_type == "counter":
+
+            redirect_url = "/report_counter?branch={}&date={}".format(branch, date)
 
         return JsonResponse({"redirect_url": redirect_url})
 
@@ -519,4 +622,87 @@ def new_employee(request):
         form = EmployeeForm()
 
     return render(request, 'frontend/employees/new_employee.html', {'form': form})
+
+
+def report_counter(request):
+    if request.method == 'GET':
+        # Get the query string parameters
+        branch_param = request.GET.get('branch')
+        date_param = request.GET.get('date')
+
+        # Validate branch parameter
+        if not branch_param:
+            return JsonResponse({"status": "error", "errors": ["No branch selected"]}, status=400)
+        try:
+            branch_id = int(branch_param)
+        except ValueError:
+            return JsonResponse({"status": "error", "errors": ["Invalid branch ID"]}, status=400)
+
+        # Convert the date parameter to string (it may be None)
+        date = str(date_param) if date_param else ""
+
+        # Initialize date_start and date_end
+        date_start, date_end = None, None
+
+        # Check if the date string contains a range (using "to")
+        if "to" in date:
+            parts = date.split("to")
+            if len(parts) >= 2:
+                date_start = parts[0].strip()
+                date_end = parts[1].strip()
+            else:
+                date_start = date.strip()
+                date_end = date.strip()
+        else:
+            # If no range is provided, you could either treat it as a single date or return an error.
+            # Here, we treat it as a single date.
+            date_start = date.strip()
+            date_end = date.strip()
+
+
+        # Generate the report (adjust parameters as needed)
+        ingressi = f.generate_ingressi_branch_report(branch_id, date_start, date_end)
+        ingressi_total = int(sum(ingressi.values()))  ## TOTALE SCONTRINI
+
+        branch = Branch.objects.get(id=branch_id)
+
+        attrazione = f.generate_branch_tasso_attrazione_report(branch_id, date_start, date_end)
+        attrazione_total = sum(attrazione.values())  / len(attrazione)
+        attrazione_total = round(attrazione_total, 2)
+
+        traffico_esterno = f.generate_branch_traffico_esterno_report(branch_id, date_start, date_end)
+        traffico_esterno_total = sum(traffico_esterno.values())
+
+        pprint(ingressi)
+
+        zoom_enabled = "false"
+        graph_type = "area"
+
+        if len(attrazione) > 30:
+            zoom_enabled = "true"
+            graph_type = "area"
+
+        context = {
+            "branch": branch,
+            "brand": branch.get_brand(),
+
+            "date_start": date_start,
+            "date_end": date_end,
+
+            "ingressi": ingressi,
+            "ingressi_total": ingressi_total,
+            "attrazione": attrazione,
+            "attrazione_total": attrazione_total,
+            "traffico_esterno": traffico_esterno,
+            "traffico_esterno_total": traffico_esterno_total,
+
+            "zoom_enabled": zoom_enabled,
+            "type": graph_type,
+        }
+
+        return render(request, "frontend/report/counter.html", context=context)
+
+    # Optionally handle non-GET requests
+    return JsonResponse({"status": "error", "errors": ["Invalid request method"]}, status=405)
+
 

@@ -47,6 +47,7 @@
 <body class="bg-base-100">
 {% include "frontend/base_cms/header.html" %}
 
+
 {% block content %}
 
 
@@ -83,6 +84,7 @@
     return cookie ? cookie.split('=')[1] : null;
   }
 
+
   // Apply theme based on cookie or default
   document.addEventListener("DOMContentLoaded", () => {
     const checkbox = document.querySelector('input[type="checkbox"]');
@@ -111,6 +113,9 @@
       });
     }
   });
+
+
+
 </script>
 
 <footer class="footer footer-center bg-base-200 text-base-content p-4">

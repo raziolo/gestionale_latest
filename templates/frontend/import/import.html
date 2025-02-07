@@ -3,24 +3,31 @@
 
 {% block title %}Import Data{% endblock %}
 {% block content %}
-    <div class="card bg-base-100 shadow-xl p-4 m-5">
-        <h1 class="text-2xl font-bold mb-4 text-center">Importa Dati</h1>
+    <div class="card bg-base-200 shadow-xl p-6 m-5 max-w-lg mx-auto  ">
+        <h1 class="text-2xl font-bold mb-5 text-center">Importa Dati</h1>
 
         <form method="post" id="importForm" action="#" enctype="multipart/form-data" class="flex flex-col items-center m-5">
             {% csrf_token %}
                 <input
               type="file"
               name="file"
-              class="file-input file-input-bordered file-input-primary w-full max-w-xs" />
+              class="file-input file-input-bordered file-input-primary m-5 w-full max-w-xs" />
 
-            <select class="select select-primary w-full max-w-xs m-5" name="branchSelect">
-              <option disabled selected>Seleziona Sede</option>
+            <select class="select select-primary w-full max-w-xs m-5" name="branchSelect" required>
+              <option value="" disabled selected>Seleziona Sede</option>
                 {% for branch in branches %}
                     <option value="{{ branch.id }}">{{ branch.name }}</option>
                 {% empty %}
                     <option>No Branches</option>
                 {% endfor %}
             </select>
+
+            <select class="select select-primary w-full max-w-xs m-5" name="typeSelect" required>
+                  <option value="" disabled selected>Seleziona Tipologia</option>
+                  <option value="sales_data">Vendite</option>
+                  <option value="counter_data">Contapersone</option>
+
+                </select>
 
             <button type="submit" class="btn btn-primary w-full max-w-xs">Importa</button>
         </form>
