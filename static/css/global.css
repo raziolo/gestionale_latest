@@ -6,6 +6,7 @@
 [data-theme="dark"] {
   --icon-color: #ffffff; /* Color for dark mode */
   --icons-button-color: #000000;
+  --assigned-cell-color: rgb(251 191 36 / 0.4);
 
 
 }
@@ -48,6 +49,7 @@
 
 [data-theme="halloween"] {
   --icon-color: #eb6123; /* Color for dark mode */
+  --assigned-cell-color: rgb(196, 81, 31, 0.4);
   --icons-button-color: #000000;
 
 }

@@ -6,15 +6,10 @@
 <div class="min-h-screen bg-base-200 p-6">
   <h1 class="text-3xl font-bold mb-6">Enhanced Schedule DataTable</h1>
 
-  <!-- Debug: Show raw JSON if you like -->
-  {# <pre class="mb-4">{{ schedule_data|safe }}</pre> #}
-
   <div class="overflow-x-auto">
-    <table class="table table-compact w-full border-collapse">
+    <table class="table table-zebra w-full border-collapse">
       <thead>
-        <!-- First Header Row: Days with colSpan -->
         <tr>
-          <!-- Sticky left corner for "Employee" label -->
           <th rowspan="2" class="bg-base-300 sticky left-0 z-10">
             Employee
           </th>
@@ -25,11 +20,10 @@
             </th>
           {% endfor %}
         </tr>
-        <!-- Second Header Row: each half-hour for each day -->
         <tr>
           {% for day in sorted_days %}
             {% for time_key in day_times_map|get_item:day %}
-              <th class="bg-base-200 text-xs text-center">
+              <th class="bg-base-200 text-xs text-center {% if forloop.last %}day-separator{% endif %}">
                 {{ time_key|time_display }}
               </th>
             {% endfor %}
@@ -37,26 +31,26 @@
         </tr>
       </thead>
       <tbody>
-        <!-- One row per employee -->
         {% for e in employees %}
           <tr>
-            <!-- Sticky left column for employee name -->
             <td class="sticky left-0 bg-base-300 z-10 font-semibold">
               {{ e.name }}
             </td>
-            <!-- Columns: each day/time in the flattened list (or nested loops) -->
             {% for day in sorted_days %}
               {% for time_key in day_times_map|get_item:day %}
                 {% with assigned_list=schedule_data|get_item:day|get_item:time_key %}
-                  <!-- Check if e.id is in that half-hour's list -->
                   {% if e.id|stringformat:"s" in assigned_list %}
-                    <td class="assignedCell text-center hover:bg-base-100 hover:cursor-pointer border border-base-200"
-                        data-day="{{ day }}">
+                    <td class="assignedCell text-center hover:bg-base-100 hover:cursor-pointer border border-base-200 {% if forloop.last %}day-separator{% endif %}"
+                        data-day="{{ day }}"
+                        data-time="{{ time_key }}"
+                        data-employee-id="{{ e.id }}">
                       X
                     </td>
                   {% else %}
-                    <td class="text-center hover:bg-base-100 hover:cursor-pointer border border-base-200"
-                        data-day="{{ day }}">
+                    <td class="text-center hover:bg-base-100 hover:cursor-pointer border border-base-200 {% if forloop.last %}day-separator{% endif %}"
+                        data-day="{{ day }}"
+                        data-time="{{ time_key }}"
+                        data-employee-id="{{ e.id }}">
                       &nbsp;
                     </td>
                   {% endif %}
@@ -70,101 +64,134 @@
   </div>
 </div>
 
-<!-- Custom CSS for consecutive X's:
-     1) .assignedCell => distinct background or highlight
-     2) If two adjacent cells in the same row/day are assigned,
-        remove the left border on the latter to make them look merged.
--->
 <style>
   .assignedCell {
     background-color: rgb(251 191 36 / 0.2); /* a mild highlight (Tailwind amber-300, ~20% alpha) */
     position: relative;
   }
-  /* If the previous cell is also assigned and has the same data-day,
-     remove the left border from the current cell to visually merge them. */
   .assignedCell[data-day] + .assignedCell[data-day]:not(:first-child) {
     border-left: none;
   }
-  /* But we only want to remove the border if the day is the same,
-     and they are in the same row (same employee).
-     We can refine it by matching the parent's row or data-employee.
-     For a pure CSS approach, it's a bit tricky. We'll do a simpler approach:
 
-     We'll rely on :nth-child adjacency in the same row, but also check data-day in the sibling.
-     The above rule does that: .assignedCell + .assignedCell
-     means two consecutive <td> siblings. If they're assignedCell, we remove the border.
-
-     This merges the blocks horizontally. */
-
-  /* Optional: If you want a subtle leftmost border for the block,
-     keep the left border for the first assigned cell in a run:
-     For that, we do not remove border-left from the very first assignedCell in the row (the previous cell might not be assigned). */
-
-  /* If you want stronger borders around the entire block, you could add
-     .assignedCell:first-of-type or add an outline, etc. */
+  /* Example "preview" style (when dragging over cells) */
+  .drag-select {
+    outline: 2px solid #fbbf24; /* Tailwind amber-300, for demonstration */
+  }
 </style>
 
-<!-- We'll add a small script for toggling on click -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-  const scheduleId = "{{ schedule.id }}"; // We pass schedule.id from context
+  const scheduleId = "{{ schedule.id }}";
   const table = document.querySelector("table");
 
-  table.addEventListener("click", function(e) {
-    // Only act if the clicked element is a cell in the table body
+  let isDragging = false;
+  // Will store references like:
+  //   cellMap.set(cell, { day, timeStr, employeeId, finalAssigned: true/false });
+  const cellMap = new Map();
+
+  // MOUSE DOWN
+  table.addEventListener("mousedown", function(e) {
     const cell = e.target.closest("td[data-day]");
     if (!cell) return;
 
-    const day = cell.dataset.day;
-    const timeStr = cell.dataset.time;
-    const employeeId = cell.dataset.employeeId;
+    isDragging = true;
 
-    // Determine the current text: "X" or blank
-    const currentText = cell.innerText.trim();
-    const isAssigned = currentText === "X";
+    // Clear all previous toggles for a fresh drag
+    cellMap.clear();
 
-    // Prepare the toggle data
-    const payload = {
-      schedule_id: scheduleId,
-      day: day,
-      time_str: timeStr,
-      employee_id: parseInt(employeeId)
-    };
+    // Toggle the starting cell immediately
+    toggleCell(cell);
+    e.preventDefault(); // Prevent text selection or other default drags
+  });
 
-    // AJAX call to toggle
-    fetch("{% url 'all_schedules' %}", {
+  // MOUSE OVER
+  table.addEventListener("mouseover", function(e) {
+    if (!isDragging) return;
+    const cell = e.target.closest("td[data-day]");
+    if (!cell) return;
+
+    // If we haven't toggled this cell yet, toggle it now
+    // (If you do want "crossing back" to re-toggle, remove the "hasn't toggled yet" check)
+    if (!cellMap.has(cell)) {
+      toggleCell(cell);
+    }
+  });
+
+  // MOUSE UP
+  document.addEventListener("mouseup", function(e) {
+    if (!isDragging) return;
+    isDragging = false;
+
+    // Build bulk payload from cellMap
+    const togglesPayload = [];
+    for (const [cell, info] of cellMap.entries()) {
+      togglesPayload.push({
+        day: info.day,
+        time_str: info.timeStr,
+        employee_id: parseInt(info.employeeId),
+        assign: info.finalAssigned // true => assign, false => unassign
+      });
+    }
+
+    if (!togglesPayload.length) return;
+
+    fetch("{% url 'toggle_assignment_bulk' %}", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRFToken": getCookie('csrftoken') // or your approach for CSRF
+        "X-CSRFToken": getCookie('csrftoken')
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        schedule_id: scheduleId,
+        toggles: togglesPayload
+      })
     })
-    .then(response => response.json())
+    .then(resp => resp.json())
     .then(data => {
-      if (data.success) {
-        if (data.assigned) {
-          cell.innerText = "X";
-        } else {
-          cell.innerHTML = "&nbsp;";
-        }
-      } else {
-        console.warn("Toggle error:", data.message);
+      if (!data.success) {
+        console.warn("Bulk toggle failed:", data.message);
       }
+      // Either way, we’ve already updated the DOM in real time
+      // If you want to revert on error, you'd do that here
     })
-    .catch(error => {
-      console.error("Request failed:", error);
+    .catch(err => {
+      console.error("Bulk toggle error:", err);
     });
   });
 
-  // Helper to get CSRF token from cookies
+  function toggleCell(cell) {
+    const day = cell.dataset.day;
+    const timeStr = cell.dataset.time.trim();
+    const employeeId = cell.dataset.employeeId;
+
+    // Check current text to see if assigned
+    const currentlyAssigned = (cell.innerText.trim() === "X");
+    const newAssigned = !currentlyAssigned; // flip
+
+    // Update the DOM immediately
+    if (newAssigned) {
+      cell.innerText = "X";
+      cell.classList.add("assignedCell");
+    } else {
+      cell.innerHTML = "&nbsp;";
+      cell.classList.remove("assignedCell");
+    }
+
+    // Store the final state in our map
+    cellMap.set(cell, {
+      day,
+      timeStr,
+      employeeId,
+      finalAssigned: newAssigned
+    });
+  }
+
   function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== "") {
       const cookies = document.cookie.split(";");
       for (let i = 0; i < cookies.length; i++) {
         const cookie = cookies[i].trim();
-        // Does this cookie string begin with the name we want?
         if (cookie.substring(0, name.length + 1) === (name + "=")) {
           cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
           break;
@@ -175,4 +202,29 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 });
 </script>
+
+    <style>
+
+    table {
+  border-collapse: collapse; /* Ensure borders are merged */
+}
+
+table th,
+table td {
+  border: 1px solid rgba(0, 0, 0, 0.1); /* A very subtle border */
+}
+  .assignedCell {
+    background-color: var(--assigned-cell-color); /* a mild highlight */
+    position: relative;
+      border: 2px solid #000;
+
+  }
+  .assignedCell[data-day] + .assignedCell[data-day]:not(:first-child) {
+    border: 2px solid #000;
+  }
+  /* Separator style for the last cell of each day group */
+  .day-separator {
+    border-right: 2px solid #000; /* Change color and width as desired */
+  }
+</style>
 {% endblock content %}
