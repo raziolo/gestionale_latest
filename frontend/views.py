@@ -2,13 +2,15 @@ import json
 from datetime import datetime, timedelta
 from pprint import pprint
 
+from django.utils.datastructures import MultiValueDictKeyError
+
 from django.shortcuts import render, reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpRequest
 from openpyxl import load_workbook
 from io import BytesIO
 
-from api.models import Import
+from api.models import Import, Schedule
 
 from api.models import Branch
 
@@ -26,14 +28,14 @@ def dashboard(request):
 from django_tables2 import SingleTableView
 from django_filters.views import FilterView
 
-from .tables import EmployeeTable, EmployeePerformancesTable
+from .tables import EmployeeTable, EmployeePerformancesTable, SchedulesTable
 from .filters import EmployeeFilter
 from api.models import Employee
 
 class EmployeeListView(FilterView, SingleTableView):
     model = Employee
     table_class = EmployeeTable
-    template_name = "frontend/employees/all_employees.html"
+    template_name = "frontend/employees/all.html"
     filterset_class = EmployeeFilter
 
     def get_queryset(self):
@@ -408,7 +410,7 @@ def report_branch(request):
             "type" : graph_type,
         }
 
-        return render(request, "frontend/report/sede.html", context)
+        return render(request, "frontend/report/branch.html", context)
 
     # Optionally handle non-GET requests
     return JsonResponse({"status": "error", "errors": ["Invalid request method"]}, status=405)
@@ -609,7 +611,7 @@ def import_history(request):
 
 
 from django.shortcuts import render, redirect
-from .forms import EmployeeForm
+from .forms import EmployeeForm, ScheduleForm
 
 
 def new_employee(request):
@@ -621,7 +623,7 @@ def new_employee(request):
     else:
         form = EmployeeForm()
 
-    return render(request, 'frontend/employees/new_employee.html', {'form': form})
+    return render(request, 'frontend/employees/new.html', {'form': form})
 
 
 def report_counter(request):
@@ -704,5 +706,202 @@ def report_counter(request):
 
     # Optionally handle non-GET requests
     return JsonResponse({"status": "error", "errors": ["Invalid request method"]}, status=405)
+
+
+from django_tables2 import SingleTableView
+from django_filters.views import FilterView
+from .tables import SchedulesTable
+from .filters import ScheduleFilter  # Make sure ScheduleFilter is imported
+
+
+class ScheduleListView(FilterView, SingleTableView):
+    model = Schedule
+    table_class = SchedulesTable
+    template_name = "frontend/schedules/all.html"
+    filterset_class = ScheduleFilter  # This should be your filterset class
+
+    # You do not need to override `get_queryset` because `FilterView` handles it
+    # If you still need custom logic, you can override `get_filterset` or `get_queryset` accordingly.
+
+    # If overriding `get_queryset`, make sure it's using the filter:
+    def get_queryset(self):
+        # Default filtering is handled by the FilterView, but you can still customize here if needed.
+        return Schedule.objects.all()  # Return all schedules if no filters applied
+
+
+def new_schedule(request):
+    if request.method == 'POST':
+        form = ScheduleForm(request.POST)
+
+        if form.is_valid():
+            # Save the Orario instance
+            new_sch = form.save()
+            request.session['new_schedule_pk'] = new_sch.pk
+            return redirect("config_schedule") #### redirect here with parameter
+        else:
+            print(form.errors)
+
+
+    else:
+        form = ScheduleForm()
+
+    # If you want to render the employees separately in the template,
+    # you can pass them in context.
+    # Build a mapping of branch id -> list of employees (id, name, surname)
+    employees_by_branch = {}
+    for branch in Branch.objects.all():
+        emps = Employee.objects.filter(branch=branch)
+        employees_by_branch[branch.id] = list(emps.values("id", "first_name", "last_name"))
+
+    context = {
+        'form': form,
+        # Pass the mapping as JSON so we can use it in JS.
+        'employees_by_branch': json.dumps(employees_by_branch),
+    }
+    return render(request, "frontend/schedules/new.html", context=context)
+
+
+def config_schedule(request):
+    if request.method == "GET":
+        new_schedule_pk = request.session.get('new_schedule_pk')
+        schedule = Schedule.objects.get(pk=new_schedule_pk)
+        employees = []
+        for employee in schedule.employees:
+            employees.append(Employee.objects.get(id=employee))
+
+        # Serialize the shift data if it exists, otherwise use an empty list.
+        prefilled_shifts = json.dumps(schedule.shift_data) if schedule.shift_data else '[]'
+
+        free_days_map = {}
+        if schedule.free_days:
+            for entry in schedule.free_days:
+                # Use the employee_id as string for easier lookup from HTML (data attributes are strings)
+                free_days_map[str(entry.get("employee_id"))] = entry.get("free_days", [])
+        # Convert to JSON so we can use it in JavaScript
+        free_days_json = json.dumps(free_days_map)
+
+        context = {
+            "schedule": schedule,
+            "employees": employees,
+            "prefilled_shifts": prefilled_shifts,  # Pass the JSON string to the template.
+            "free_days": free_days_json,  # JSON string mapping employee_id to free days
+
+        }
+        return render(request, "frontend/schedules/config.html", context=context)
+
+    elif request.method == "POST":
+        form_data = request.POST
+        print(form_data)
+        # Get and parse shifts data from request
+        shifts_data = request.POST.get('shifts_data', '[]')  # Default to empty list if no shifts
+        shifts = json.loads(shifts_data)
+
+        new_schedule_pk = request.session.get('new_schedule_pk')
+        schedule = Schedule.objects.get(pk=new_schedule_pk)
+
+        # Convert minutes to HH:MM format
+        if shifts != schedule.shift_data:
+            for shift in shifts:
+                shift["start"] = str(timedelta(minutes=shift["start"]))[:-3]  # Converts to HH:MM
+                shift["end"] = str(timedelta(minutes=shift["end"]))[:-3]
+            schedule.shift_data = shifts
+
+        schedule.free_days = process_free_days(form_data)
+
+        schedule.save()
+
+        return redirect("confirm_schedule")
+
+
+import json
+
+
+def process_free_days(form_data):
+    """
+    Extract free days from the POST data.
+    Returns a list of dictionaries, e.g.:
+    [
+        {"employee_id": 1, "free_days": ["2025-02-01", "2025-02-07", "2025-02-14"]},
+        {"employee_id": 2, "free_days": ["2025-02-12", "2025-02-19", "2025-02-26"]},
+        # ...
+    ]
+    """
+    free_days_data = []
+
+    # Loop through all keys in form_data.
+    for key in form_data:
+        if key.startswith("free_days_"):
+            # Extract the employee ID from the key.
+            employee_id_str = key.split("_")[-1]
+            try:
+                employee_id = int(employee_id_str)
+            except ValueError:
+                # Skip if employee_id isn't an integer.
+                continue
+
+            # Get the value (a list with one string element).
+            free_days_value = form_data.get(key, "").strip()
+
+            # Split the dates by comma and remove extra spaces.
+            if free_days_value:
+                days_list = [day.strip() for day in free_days_value.split(",") if day.strip()]
+            else:
+                days_list = []
+
+            free_days_data.append({
+                "employee_id": employee_id,
+                "free_days": days_list,
+            })
+
+    return free_days_data
+
+
+def confirm_schedule(request):
+    if request.method == "GET":
+        new_schedule_pk = request.session.get('new_schedule_pk')
+        schedule = Schedule.objects.get(pk=new_schedule_pk)
+
+        # Build a mapping for free days:
+        free_days_map = {}
+        if schedule.free_days:
+            for entry in schedule.free_days:
+                free_days_map[str(entry.get("employee_id"))] = entry.get("free_days", [])
+
+        # Build a list of employee objects and annotate with free_days:
+        employees = []
+        for employee_id in schedule.employees:
+            try:
+                emp = Employee.objects.get(id=employee_id)
+                # Annotate the employee object with its free days:
+                emp.free_days = free_days_map.get(str(emp.id), [])
+                employees.append(emp)
+            except Employee.DoesNotExist:
+                pass
+
+        context = {
+            "schedule": schedule,
+            "employees": employees,
+            # You can still pass free_days mapping if needed for other purposes:
+            "free_days": free_days_map,
+        }
+        return render(request, "frontend/schedules/confirm.html", context=context)
+
+
+def create_schedule(request):
+    if request.method == "POST":
+        new_schedule_pk = request.session.get('new_schedule_pk')
+        schedule = Schedule.objects.get(pk=new_schedule_pk)
+        from frontend.orario_creation import create_scheduleMP
+
+        create_scheduleMP(schedule.id)
+
+def timeline_schedule(request):
+    if request.method == "GET":
+        new_schedule_pk = request.session.get('new_schedule_pk')
+        schedule = Schedule.objects.get(pk=new_schedule_pk)
+        context = {
+            "schedule": schedule,
+        }
+        return render(request, "frontend/schedules/timeline.html", context=context)
 
 

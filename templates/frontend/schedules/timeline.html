@@ -1,0 +1,71 @@
+<!-- myapp/templates/myapp/schedule_timeline.html -->
+{% extends "frontend/base_cms/base.html" %}
+{% load static %}
+{% load custom_filters %}
+
+
+{% block content %}
+
+<div class="p-6 bg-base-200 min-h-screen">
+  <h1 class="text-2xl font-bold mb-6">Schedule Timeline</h1>
+
+
+
+  <div class="space-y-10">
+    {% for date_str, halfhour_map in schedule.schedule_data.items %}
+      <!-- One block per date -->
+      <div class="card bg-base-100 shadow-xl overflow-hidden">
+        <div class="card-body">
+          <h2 class="card-title text-lg mb-4">
+            {{ date_str }}
+          </h2>
+
+          <!-- Horizontal table for half-hour blocks -->
+          <div class="overflow-x-auto w-full">
+            <table class="table table-compact w-full">
+              <thead>
+                <tr>
+                  <!-- We'll create a column for each half-hour slot from the map's keys -->
+                  {% for minute_mark in halfhour_map.keys %}
+                    <th class="text-center">
+                      <!-- Convert minutes back to HH:MM -->
+                        {{ minute_mark|time_display }}  <!--  540 -> "09:00"  -->
+                      <!-- We actually need to do a little custom filter or function to get HH:MM in template. Let's do it inline. -->
+                      {% cycle '' as noop %}
+                    {% endfor %}
+                </tr>
+                <tr>
+                  {% for minute_mark in halfhour_map.keys %}
+                    <th class="whitespace-nowrap text-sm">
+                      {{ minute_mark|floatformat:0|time_display }}
+                    </th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  {% for minute_mark, employees in halfhour_map.items %}
+                    <td class="text-center align-top">
+                      {% if employees %}
+                        <div class="flex flex-col items-center">
+                          {% for emp in employees %}
+                            <span class="badge badge-primary mb-1">{{ emp }}</span>
+                          {% endfor %}
+                        </div>
+                      {% else %}
+                        <span class="text-gray-400 italic text-xs">-</span>
+                      {% endif %}
+                    </td>
+                  {% endfor %}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <!-- End horizontal table -->
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock content %}

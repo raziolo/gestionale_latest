@@ -1,7 +1,13 @@
 # tables.py
 import django_tables2 as tables
-from api.models import Employee
+from api.models import Employee, Schedule, Branch
 from django.utils.html import format_html
+from django_filters import rest_framework as filters
+
+from django import forms
+
+
+
 
 class EmployeeTable(tables.Table):
     class Meta:
@@ -48,4 +54,26 @@ class EmployeePerformancesTable(tables.Table):
         attrs = {
             "class": "table table-zebra table-hover table-compact w-full text-lg",
         }
+
+# Table definition using django-tables2
+class SchedulesTable(tables.Table):
+    id = tables.Column()
+    employees = tables.Column()
+    branch_id = tables.Column()
+    start_date = tables.Column()
+    end_date = tables.Column()
+    actions = tables.Column()
+
+    class Meta:
+        model = Schedule
+        template_name = "django_tables2/bootstrap.html"
+        attrs = {
+            "class": "table table-zebra table-hover table-compact w-full text-lg",
+        }
+        fields = (
+        "branch_id",  "end_date",  "id", "start_date", "actions")
+
+
+# In the view, use the filter and table together
+
 
