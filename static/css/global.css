@@ -44,6 +44,8 @@
 [data-theme="synthwave"] {
   --icon-color: #ffffff; /* Color for dark mode */
   --icons-button-color: #000000;
+  --assigned-cell-color: rgb(229, 120, 192);
+
 
 }
 
