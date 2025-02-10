@@ -147,7 +147,7 @@
         Swal.fire({
           title: 'Elaborazione in corso...',
           text: 'Questa operazione potrebbe richiedere qualche minuto.',
-          imageUrl: window.location.origin + "{% static 'img/loading.gif' %}",
+          imageUrl: window.location.origin + "{% static 'imgs/loading.gif' %}",
           imageWidth: 64,
           imageHeight: 64,
           imageAlt: 'Loading...',
@@ -184,7 +184,7 @@
           const confirmButton = document.getElementById("confirmButton");
           confirmButton.innerText = "Vai alla pagina";
           confirmButton.onclick = function() {
-            window.location.href = "";
+            window.location.href = "{% url 'timeline' schedule.id %}";
           };
         });
       } else {

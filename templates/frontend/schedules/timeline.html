@@ -1,71 +1,178 @@
-<!-- myapp/templates/myapp/schedule_timeline.html -->
 {% extends "frontend/base_cms/base.html" %}
 {% load static %}
 {% load custom_filters %}
 
-
 {% block content %}
+<div class="min-h-screen bg-base-200 p-6">
+  <h1 class="text-3xl font-bold mb-6">Enhanced Schedule DataTable</h1>
 
-<div class="p-6 bg-base-200 min-h-screen">
-  <h1 class="text-2xl font-bold mb-6">Schedule Timeline</h1>
+  <!-- Debug: Show raw JSON if you like -->
+  {# <pre class="mb-4">{{ schedule_data|safe }}</pre> #}
 
-
-
-  <div class="space-y-10">
-    {% for date_str, halfhour_map in schedule.schedule_data.items %}
-      <!-- One block per date -->
-      <div class="card bg-base-100 shadow-xl overflow-hidden">
-        <div class="card-body">
-          <h2 class="card-title text-lg mb-4">
-            {{ date_str }}
-          </h2>
-
-          <!-- Horizontal table for half-hour blocks -->
-          <div class="overflow-x-auto w-full">
-            <table class="table table-compact w-full">
-              <thead>
-                <tr>
-                  <!-- We'll create a column for each half-hour slot from the map's keys -->
-                  {% for minute_mark in halfhour_map.keys %}
-                    <th class="text-center">
-                      <!-- Convert minutes back to HH:MM -->
-                        {{ minute_mark|time_display }}  <!--  540 -> "09:00"  -->
-                      <!-- We actually need to do a little custom filter or function to get HH:MM in template. Let's do it inline. -->
-                      {% cycle '' as noop %}
-                    {% endfor %}
-                </tr>
-                <tr>
-                  {% for minute_mark in halfhour_map.keys %}
-                    <th class="whitespace-nowrap text-sm">
-                      {{ minute_mark|floatformat:0|time_display }}
-                    </th>
-                  {% endfor %}
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  {% for minute_mark, employees in halfhour_map.items %}
-                    <td class="text-center align-top">
-                      {% if employees %}
-                        <div class="flex flex-col items-center">
-                          {% for emp in employees %}
-                            <span class="badge badge-primary mb-1">{{ emp }}</span>
-                          {% endfor %}
-                        </div>
-                      {% else %}
-                        <span class="text-gray-400 italic text-xs">-</span>
-                      {% endif %}
+  <div class="overflow-x-auto">
+    <table class="table table-compact w-full border-collapse">
+      <thead>
+        <!-- First Header Row: Days with colSpan -->
+        <tr>
+          <!-- Sticky left corner for "Employee" label -->
+          <th rowspan="2" class="bg-base-300 sticky left-0 z-10">
+            Employee
+          </th>
+          {% for day in sorted_days %}
+            <th class="bg-base-300 text-center"
+                colspan="{{ day_times_map|get_item:day|length }}">
+              {{ day }}
+            </th>
+          {% endfor %}
+        </tr>
+        <!-- Second Header Row: each half-hour for each day -->
+        <tr>
+          {% for day in sorted_days %}
+            {% for time_key in day_times_map|get_item:day %}
+              <th class="bg-base-200 text-xs text-center">
+                {{ time_key|time_display }}
+              </th>
+            {% endfor %}
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        <!-- One row per employee -->
+        {% for e in employees %}
+          <tr>
+            <!-- Sticky left column for employee name -->
+            <td class="sticky left-0 bg-base-300 z-10 font-semibold">
+              {{ e.name }}
+            </td>
+            <!-- Columns: each day/time in the flattened list (or nested loops) -->
+            {% for day in sorted_days %}
+              {% for time_key in day_times_map|get_item:day %}
+                {% with assigned_list=schedule_data|get_item:day|get_item:time_key %}
+                  <!-- Check if e.id is in that half-hour's list -->
+                  {% if e.id|stringformat:"s" in assigned_list %}
+                    <td class="assignedCell text-center hover:bg-base-100 hover:cursor-pointer border border-base-200"
+                        data-day="{{ day }}">
+                      X
                     </td>
-                  {% endfor %}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <!-- End horizontal table -->
-        </div>
-      </div>
-    {% endfor %}
+                  {% else %}
+                    <td class="text-center hover:bg-base-100 hover:cursor-pointer border border-base-200"
+                        data-day="{{ day }}">
+                      &nbsp;
+                    </td>
+                  {% endif %}
+                {% endwith %}
+              {% endfor %}
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
 
+<!-- Custom CSS for consecutive X's:
+     1) .assignedCell => distinct background or highlight
+     2) If two adjacent cells in the same row/day are assigned,
+        remove the left border on the latter to make them look merged.
+-->
+<style>
+  .assignedCell {
+    background-color: rgb(251 191 36 / 0.2); /* a mild highlight (Tailwind amber-300, ~20% alpha) */
+    position: relative;
+  }
+  /* If the previous cell is also assigned and has the same data-day,
+     remove the left border from the current cell to visually merge them. */
+  .assignedCell[data-day] + .assignedCell[data-day]:not(:first-child) {
+    border-left: none;
+  }
+  /* But we only want to remove the border if the day is the same,
+     and they are in the same row (same employee).
+     We can refine it by matching the parent's row or data-employee.
+     For a pure CSS approach, it's a bit tricky. We'll do a simpler approach:
+
+     We'll rely on :nth-child adjacency in the same row, but also check data-day in the sibling.
+     The above rule does that: .assignedCell + .assignedCell
+     means two consecutive <td> siblings. If they're assignedCell, we remove the border.
+
+     This merges the blocks horizontally. */
+
+  /* Optional: If you want a subtle leftmost border for the block,
+     keep the left border for the first assigned cell in a run:
+     For that, we do not remove border-left from the very first assignedCell in the row (the previous cell might not be assigned). */
+
+  /* If you want stronger borders around the entire block, you could add
+     .assignedCell:first-of-type or add an outline, etc. */
+</style>
+
+<!-- We'll add a small script for toggling on click -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const scheduleId = "{{ schedule.id }}"; // We pass schedule.id from context
+  const table = document.querySelector("table");
+
+  table.addEventListener("click", function(e) {
+    // Only act if the clicked element is a cell in the table body
+    const cell = e.target.closest("td[data-day]");
+    if (!cell) return;
+
+    const day = cell.dataset.day;
+    const timeStr = cell.dataset.time;
+    const employeeId = cell.dataset.employeeId;
+
+    // Determine the current text: "X" or blank
+    const currentText = cell.innerText.trim();
+    const isAssigned = currentText === "X";
+
+    // Prepare the toggle data
+    const payload = {
+      schedule_id: scheduleId,
+      day: day,
+      time_str: timeStr,
+      employee_id: parseInt(employeeId)
+    };
+
+    // AJAX call to toggle
+    fetch("{% url 'all_schedules' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCookie('csrftoken') // or your approach for CSRF
+      },
+      body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        if (data.assigned) {
+          cell.innerText = "X";
+        } else {
+          cell.innerHTML = "&nbsp;";
+        }
+      } else {
+        console.warn("Toggle error:", data.message);
+      }
+    })
+    .catch(error => {
+      console.error("Request failed:", error);
+    });
+  });
+
+  // Helper to get CSRF token from cookies
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        // Does this cookie string begin with the name we want?
+        if (cookie.substring(0, name.length + 1) === (name + "=")) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+});
+</script>
 {% endblock content %}

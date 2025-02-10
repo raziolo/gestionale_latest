@@ -2,7 +2,7 @@ from django import template
 
 register = template.Library()
 
-@register.filter(name='get_item')
+@register.filter
 def get_item(dictionary, key):
     """Returns the value from the dictionary using the provided key."""
     return dictionary.get(key)
@@ -12,10 +12,6 @@ def dictvalue(d, key):
     return d.get(key)
 
 # frontend/templatetags/time_extras.py
-
-from django import template
-
-register = template.Library()
 
 @register.filter
 def time_display(minutes):

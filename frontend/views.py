@@ -4,7 +4,7 @@ from pprint import pprint
 
 from django.utils.datastructures import MultiValueDictKeyError
 
-from django.shortcuts import render, reverse
+from django.shortcuts import render, reverse, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpRequest
 from openpyxl import load_workbook
@@ -856,6 +856,9 @@ def process_free_days(form_data):
     return free_days_data
 
 
+
+
+
 def confirm_schedule(request):
     if request.method == "GET":
         new_schedule_pk = request.session.get('new_schedule_pk')
@@ -893,15 +896,90 @@ def create_schedule(request):
         schedule = Schedule.objects.get(pk=new_schedule_pk)
         from frontend.orario_creation import create_scheduleMP
 
-        create_scheduleMP(schedule.id)
+        result = create_scheduleMP(schedule.id)
 
-def timeline_schedule(request):
-    if request.method == "GET":
-        new_schedule_pk = request.session.get('new_schedule_pk')
-        schedule = Schedule.objects.get(pk=new_schedule_pk)
-        context = {
-            "schedule": schedule,
+        if result == 0:
+            return JsonResponse({"success": True, "message": "Operazione completata con successo"}, status=200)
+        else:
+            return JsonResponse({"success": False, "message": "-1"}, status=400)
+
+def timeline_schedule(request, schedule_id):
+    # Fetch the schedule object
+    schedule = get_object_or_404(Schedule, pk=schedule_id)
+
+    # If schedule_data is a JSON string, parse it:
+    schedule_data = schedule.schedule_data
+    if isinstance(schedule_data, str):
+        schedule_data = json.loads(schedule_data)
+
+    # We'll build a flattened list of (day, minute_mark) pairs, sorted by day and time
+    days = sorted(schedule_data.keys())  # e.g. ["2025-02-01", "2025-02-02", ...]
+    columns = []
+    for day in days:
+        # Each day has a dict of half-hour keys; we sort them numerically
+        day_times = sorted(schedule_data[day].keys(), key=lambda x: int(x))
+        for t in day_times:
+            columns.append((day, t))  # e.g. ("2025-02-01", "540")
+
+    # For each day, get the sorted time keys
+    day_times_map = {}
+    for day in days:
+        time_keys = sorted(schedule_data[day].keys(), key=lambda x: int(x))
+        day_times_map[day] = time_keys
+
+    # Build a flat list of (day, time_key) to iterate in the second header row and table body
+    columns = []
+    for day in days:
+        for t in day_times_map[day]:
+            columns.append((day, t))
+
+    # List of employees for your table
+    employees = []
+
+    for employee in schedule.employees:
+        emp = Employee.objects.get(id=employee)
+        emp_data = {
+            "id": emp.id,
+            "name": f"{emp.first_name} {emp.last_name}",
         }
-        return render(request, "frontend/schedules/timeline.html", context=context)
+        employees.append(emp_data)
+
+    context = {
+        "schedule": schedule,  # We might need schedule.id if we do editing
+        "schedule_data": schedule_data,  # day->(time->list_of_employee_ids)
+        "sorted_days": days,  # For the first header row
+        "day_times_map": day_times_map,  # day-> sorted list of half-hours
+        "columns": columns,  # flattened (day, time_key)
+        "employees": employees,
+    }
+    return render(request, "frontend/schedules/timeline.html", context)
 
 
+def set_schedule_for_processing(request, schedule_id):
+    if request.method == 'GET':
+        schedule = Schedule.objects.get(pk=schedule_id)
+
+        if not schedule.processed:
+            request.session['new_schedule_pk'] = schedule.pk
+            return redirect("config_schedule")
+        else:
+            return redirect("all_schedules")
+
+def set_schedule_for_modify(request, schedule_id):
+    schedule = Schedule.objects.get(pk=schedule_id)
+    if not schedule.processed:
+        request.session['new_schedule_pk'] = schedule.pk
+        return redirect("config_schedule")
+    else:
+        return redirect("all_schedules")
+
+
+def delete_schedule(request, schedule_id):
+    if request.method == 'POST':
+        schedule = Schedule.objects.get(pk=schedule_id)
+
+        if not schedule.processed:
+            schedule.delete()
+            return redirect("all_schedules")
+
+        return redirect("all_schedules")

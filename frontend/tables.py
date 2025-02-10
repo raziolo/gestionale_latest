@@ -4,6 +4,8 @@ from api.models import Employee, Schedule, Branch
 from django.utils.html import format_html
 from django_filters import rest_framework as filters
 
+from django.urls import reverse
+
 from django import forms
 
 
@@ -58,11 +60,30 @@ class EmployeePerformancesTable(tables.Table):
 # Table definition using django-tables2
 class SchedulesTable(tables.Table):
     id = tables.Column()
-    employees = tables.Column()
-    branch_id = tables.Column()
-    start_date = tables.Column()
-    end_date = tables.Column()
-    actions = tables.Column()
+    branch_name = tables.Column(accessor="branch.name", verbose_name="Sede")
+    start_date = tables.Column(verbose_name="Dal")
+    end_date = tables.Column(verbose_name="Al")
+    processed = tables.BooleanColumn(accessor="processed", verbose_name="Processato")
+    actions = tables.Column(empty_values=(), orderable=False, verbose_name="Azioni")
+
+    def render_actions(self, record):
+        if not record.processed:
+            process_url = reverse('set_schedule_for_processing', args=[record.id])
+            modify_url = reverse('set_schedule_for_modify', args=[record.id])
+            delete_url = reverse('delete_schedule', args=[record.id])
+
+            return format_html(
+                '<a href="{}" class="btn btn-primary btn-xs mr-2">Processa</a>'
+                '<a href="{}" class="btn btn-secondary btn-xs mr-2">Modifica</a>'
+                '<a href="{}" class="btn btn-error btn-xs mr-2">Elimina</a>',
+                process_url, modify_url, delete_url
+            )
+        else:
+            view_url = f"/schedules/timeline/{record.id}/"
+            return format_html(
+                '<a href="{}" class="btn btn-warning btn-xs">Visualizza</a>',
+                view_url
+            )
 
     class Meta:
         model = Schedule
@@ -70,10 +91,9 @@ class SchedulesTable(tables.Table):
         attrs = {
             "class": "table table-zebra table-hover table-compact w-full text-lg",
         }
-        fields = (
-        "branch_id",  "end_date",  "id", "start_date", "actions")
+        fields = ("id", "branch_name", "start_date", "end_date", "processed", "actions")
 
 
-# In the view, use the filter and table together
+
 
 

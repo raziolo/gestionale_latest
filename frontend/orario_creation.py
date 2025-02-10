@@ -570,8 +570,10 @@ def create_scheduleMP(orario_id):
 
 
             schedule.schedule_data = timeline_map
-            schedule.processed = False # TODO: set to true
+            schedule.processed = True # TODO: set to true
             schedule.save()
+
+            return 0
 
         else:
             print("no")
