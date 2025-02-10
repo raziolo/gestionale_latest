@@ -58,6 +58,7 @@ class EmployeePerformancesTable(tables.Table):
         }
 
 # Table definition using django-tables2
+
 class SchedulesTable(tables.Table):
     id = tables.Column()
     branch_name = tables.Column(accessor="branch.name", verbose_name="Sede")
