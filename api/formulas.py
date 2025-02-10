@@ -1,4 +1,5 @@
 import importlib.resources
+import json
 from datetime import datetime, timedelta
 from pprint import pprint
 
@@ -659,6 +660,61 @@ def generate_branch_tasso_attrazione_report(branch_id, start_date, end_date):
     return data
 
 
+def get_employee_worked_hours_single_day(employee_id, date):
+    """
+    Calculate the total hours an employee worked on a specific day.
+
+    Assumes schedule_data is structured as:
+      {
+         "2025-02-01": {
+             "540": ["2", "3"],
+             "570": ["2", "3"],
+             "600": ["2", "3", "4"],
+             ...
+         },
+         ...
+      }
+    where each time key represents a 30-minute block.
+    """
+
+    employee = None
+
+
+    try:
+        employee = Employee.objects.get(id=employee_id)
+    except Employee.DoesNotExist:
+        print("Employee does not exist.")
+        return 0  # or choose an error code / exception
+
+    branch = employee.branch
+
+    try:
+        schedule_obj = Schedule.objects.get(start_date__lte=date, end_date__gte=date, branch=branch)
+    except Schedule.DoesNotExist:
+        # No schedule for that day
+        return -1
+
+    # Parse schedule_data if it is a JSON string
+    schedule_data = schedule_obj.schedule_data
+    if isinstance(schedule_data, str):
+        schedule_data = json.loads(schedule_data)
+
+    # Get the schedule for the provided date
+    day_schedule = schedule_data.get(date)
+    if not day_schedule:
+        print("No")
+        return 0
+
+    worked_slots = 0
+    # Loop over each time block in the day's schedule
+    for time_key, employee_list in day_schedule.items():
+        # Make sure to compare as strings, since the stored IDs might be strings
+        if str(employee_id) in [str(emp) for emp in employee_list]:
+            worked_slots += 1
+
+    # Each slot is 30 minutes (0.5 hours)
+    worked_hours = worked_slots * 0.5
+    return worked_hours
 
 
 

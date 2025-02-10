@@ -1006,7 +1006,6 @@ def toggle_assignment(request):
 
         # If schedule_data is a JSON string, parse it
         schedule_data = schedule.schedule_data
-        print(data)
 
         if isinstance(schedule_data, str):
             schedule_data = json.loads(schedule_data)
@@ -1045,8 +1044,6 @@ def toggle_assignment_bulk(request):
     schedule = get_object_or_404(Schedule, pk=schedule_id)
     schedule_data = json.loads(schedule.schedule_data)  # or however it's stored
 
-    print(data)
-
     for t in toggles:
         day = t["day"]
         time_str = t["time_str"]
@@ -1069,3 +1066,85 @@ def toggle_assignment_bulk(request):
     schedule.save()
 
     return JsonResponse({"success": True})
+
+
+def worked_hours(request):
+    if request.method == "GET":
+        return render(request, "frontend/employees/worked_hours.html")
+    if request.method == "POST":
+        data = json.loads(request.body)
+        branch_param = data.get('branch')
+        date_param = data.get('date')
+
+
+        # Validate branch parameter
+        if not branch_param:
+            return JsonResponse({"status": "error", "errors": ["No branch selected"]}, status=400)
+        try:
+            branch_id = int(branch_param)
+        except ValueError:
+            return JsonResponse({"status": "error", "errors": ["Invalid branch ID"]}, status=400)
+
+        # Convert the date parameter to string (it may be None)
+        date = str(date_param) if date_param else ""
+
+        # Initialize date_start and date_end
+        date_start, date_end = None, None
+
+        # Check if the date string contains a range (using "to")
+        if "to" in date:
+            parts = date.split("to")
+            if len(parts) >= 2:
+                date_start = parts[0].strip()
+                date_end = parts[1].strip()
+            else:
+                date_start = date.strip()
+                date_end = date.strip()
+        else:
+            # If no range is provided, you could either treat it as a single date or return an error.
+            # Here, we treat it as a single date.
+            date_start = date.strip()
+            date_end = date.strip()
+
+        date_start_dt = datetime.strptime(date_start, "%Y-%m-%d").date()
+        date_end_dt = datetime.strptime(date_end, "%Y-%m-%d").date()
+        date_range = [date_start_dt + timedelta(days=i) for i in range((date_end_dt - date_start_dt).days + 1)]
+
+        employees_branch = Employee.objects.filter(branch=branch_id)
+
+        worked_hours_data = {date.strftime("%Y-%m-%d"):[] for date in date_range}
+        for current_date in date_range:
+            for employee in employees_branch:
+                w = {"employee": f"({employee.id}) {employee.first_name} {employee.last_name}",
+                     "worked_hours": f.get_employee_worked_hours_single_day(employee.id, current_date.strftime("%Y-%m-%d"))}
+                worked_hours_data[current_date.strftime("%Y-%m-%d")].append(w)
+
+
+        all_employees = set()
+        for day_data in worked_hours_data.values():
+            for rec in day_data:
+                all_employees.add(rec["employee"])
+
+        all_employees = sorted(all_employees)  # optional
+
+        # day -> {employee_id -> hours}
+        pivot_data = {}
+
+        for day, records in worked_hours_data.items():
+            pivot_data[day] = {}
+            for emp in all_employees:
+                pivot_data[day][emp] = 0  # default 0
+
+            for rec in records:
+                pivot_data[day][rec["employee"]] = rec["worked_hours"]
+
+        totals = {}
+        for day, emp_dict in pivot_data.items():
+            for emp_id, hours in emp_dict.items():
+                totals[emp_id] = totals.get(emp_id, 0) + hours
+
+        # 2) Add this dictionary back under a special key, e.g. "TOTAL".
+        pivot_data["TOTALE"] = totals
+
+
+        return JsonResponse({"status": "success", "worked_hours_data": pivot_data})

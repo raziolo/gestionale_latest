@@ -17,6 +17,7 @@ urlpatterns = [
 
     path('all_employees/', EmployeeListView.as_view(), name='all_employees'),
     path('new_employee/', views.new_employee, name='new_employee'),
+    path('worked_hours/', views.worked_hours, name='worked_hours'),
 
     path('import/', views.import_data, name='import'),
     path('import/history/', views.import_history, name='import_history'),
