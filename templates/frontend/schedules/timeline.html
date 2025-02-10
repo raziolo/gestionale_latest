@@ -62,7 +62,12 @@
       </tbody>
     </table>
   </div>
+
 </div>
+
+    <div class="card w-100 bg-base-300 shadow-xl p-6 m-5">
+        <div id="workedHoursTotal" class="my-6"></div>
+    </div>
 
 <style>
   .assignedCell {
@@ -201,6 +206,63 @@ document.addEventListener("DOMContentLoaded", function() {
     return cookieValue;
   }
 });
+
+/**
+   * Render the total worked hours table for each employee
+   * Example data shape:
+   * {
+   *   "2025-02-01": {"1": 4.0, "2": 0, "3": 2.5},
+   *   "2025-02-02": {"1": 5.0, "2": 6.0, "3": 1.5}
+   * }
+   */
+  function renderTotalWorkedHours(pivotData) {
+    try {
+      const totalWorkedHours = {};
+
+      // Aggregate total worked hours for each employee
+      Object.keys(pivotData).forEach(day => {
+        const dayObj = pivotData[day];
+        for (let empId in dayObj) {
+          totalWorkedHours[empId] = (totalWorkedHours[empId] || 0) + dayObj[empId];
+        }
+      });
+
+      // Build the total hours table
+      let html = `
+        <div class="overflow-auto">
+          <table class="table table-zebra w-full">
+            <thead>
+              <tr>
+                <th>Employee ID</th>
+                <th>Total Worked Hours</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      for (let empId in totalWorkedHours) {
+        html += `
+          <tr>
+            <td>${empId}</td>
+            <td>${totalWorkedHours[empId].toFixed(2)}</td>
+          </tr>
+        `;
+      }
+
+      html += `
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      document.getElementById("workedHoursTotal").innerHTML = html;
+    } catch (error) {
+      console.error("Error rendering total worked hours:", error);
+      Swal.fire("Error", "An error occurred while rendering the total worked hours: " + error.message, "error");
+    }
+  }
+
+
 </script>
 
     <style>
@@ -216,12 +278,13 @@ table td {
   .assignedCell {
     background-color: var(--assigned-cell-color); /* a mild highlight */
     position: relative;
-      border: 2px solid #000;
+      border:none;
 
   }
   .assignedCell[data-day] + .assignedCell[data-day]:not(:first-child) {
-    border: 2px solid #000;
+      border: none;
   }
+
   /* Separator style for the last cell of each day group */
   .day-separator {
     border-right: 2px solid #000; /* Change color and width as desired */
