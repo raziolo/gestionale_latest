@@ -29,7 +29,6 @@ urlpatterns = [
     path('schedules/timeline/<int:schedule_id>/', views.timeline_schedule, name='timeline'),
     path('schedules/set_schedule_p/<int:schedule_id>/', views.set_schedule_for_processing, name='set_schedule_for_processing'),
     path('schedules/set_schedule_m/<int:schedule_id>/', views.set_schedule_for_modify, name='set_schedule_for_modify'),
-    path('schedules/toggle_assignment/', views.toggle_assignment, name='toggle_assignment'),
     path('schedules/toggle_assignment_bulk/', views.toggle_assignment_bulk, name='toggle_assignment_bulk'),
 
     path('schedules/create/', views.create_schedule, name='create_schedule'),

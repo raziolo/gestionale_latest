@@ -987,53 +987,6 @@ def delete_schedule(request, schedule_id):
         return redirect("all_schedules")
 
 
-
-def toggle_assignment(request):
-    """
-    AJAX endpoint to toggle an employee's assignment for a given day/time.
-    Expects JSON:
-        { 'schedule_id': ..., 'day': '2025-02-01', 'time_str': '540', 'employee_id': 2 }
-    Returns JSON with updated state: { 'assigned': True/False, 'message': ... }
-    """
-    if request.method == "POST":
-        data = json.loads(request.body)
-        schedule_id = data.get("schedule_id")
-        day = data.get("day")
-        time_str = data.get("time_str")
-        employee_id = str(data.get("employee_id"))  # convert to string to match stored IDs
-
-        schedule = get_object_or_404(Schedule, pk=schedule_id)
-
-        # If schedule_data is a JSON string, parse it
-        schedule_data = schedule.schedule_data
-
-        if isinstance(schedule_data, str):
-            schedule_data = json.loads(schedule_data)
-
-        # Access the assigned list
-        assigned = schedule_data[day][time_str]
-
-        if employee_id in assigned:
-            # Remove the assignment
-            assigned.remove(employee_id)
-            assigned_state = False
-        else:
-            # Add the assignment
-            assigned.append(employee_id)
-            assigned_state = True
-
-        # Save the updated schedule data
-        schedule.schedule_data = json.dumps(schedule_data)
-        schedule.save()
-
-        return JsonResponse({
-            "success": True,
-            "assigned": assigned_state,
-            "message": f"Employee {employee_id} toggled for {day} @ {time_str}"
-        })
-
-    return JsonResponse({"success": False, "message": "Invalid request"}, status=400)
-
 @require_POST
 def toggle_assignment_bulk(request):
     data = json.loads(request.body)

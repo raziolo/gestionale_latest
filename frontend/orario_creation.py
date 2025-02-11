@@ -1,3 +1,4 @@
+import json
 from datetime import date as _date
 from pprint import pprint
 
@@ -16,7 +17,7 @@ def __init__():
     # Connect to the database
     conn = mysql.connector.connect(
         host="localhost",
-        user="pmaadmin",
+        user="root",
         database="masterplan",
         password="123456",
     )
@@ -569,7 +570,7 @@ def create_scheduleMP(orario_id):
             timeline_map = generate_timeline(merged_data)
 
 
-            schedule.schedule_data = timeline_map
+            schedule.schedule_data = json.dumps(timeline_map)
             schedule.processed = True # TODO: set to true
             schedule.save()
 
