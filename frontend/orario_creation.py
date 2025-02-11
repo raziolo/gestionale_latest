@@ -16,7 +16,7 @@ def __init__():
     # Connect to the database
     conn = mysql.connector.connect(
         host="localhost",
-        user="root",
+        user="pmaadmin",
         database="masterplan",
         password="123456",
     )
