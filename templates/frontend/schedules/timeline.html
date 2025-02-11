@@ -3,15 +3,38 @@
 {% load custom_filters %}
 
 {% block content %}
-<div class="min-h-screen bg-base-200 p-6">
-  <h1 class="text-3xl font-bold mb-6">Enhanced Schedule DataTable</h1>
+    <div class="card bg-base-300 shadow-xl p-4 m-2">
+
+  <div class="card bg-base-200 shadow-md rounded-md mb-3 p-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <!-- Header with Schedule ID -->
+        <h2 class="card-title text-2xl mb-2 sm:mb-0">
+          Modifica Orario #
+          <span class="badge badge-secondary text-lg">{{ schedule.id }}</span>
+        </h2>
+        <!-- Details: Dates and Branch -->
+        <div class="flex flex-col sm:flex-row gap-4">
+          <div class="flex items-center">
+            <span class="font-bold mr-2">Dal:</span>
+            <span class="badge badge-info">{{ schedule.start_date }}</span>
+          </div>
+          <div class="flex items-center">
+            <span class="font-bold mr-2">Al:</span>
+            <span class="badge badge-info">{{ schedule.end_date }}</span>
+          </div>
+          <div class="flex items-center">
+            <span class="font-bold mr-2">Sede:</span>
+            <span class="badge badge-info">{{ schedule.branch.name }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
   <div class="overflow-x-auto">
     <table class="table table-zebra w-full border-collapse">
       <thead>
         <tr>
           <th rowspan="2" class="bg-base-300 sticky left-0 z-10">
-            Employee
           </th>
           {% for day in sorted_days %}
             <th class="bg-base-300 text-center"
@@ -65,7 +88,7 @@
 
 </div>
 
-    <div class="card w-100 bg-base-300 shadow-xl p-6 m-5">
+    <div class="card bg-base-300 shadow-xl p-4 m-2">
         <div id="workedHoursTotal" class="my-6"></div>
     </div>
 
@@ -86,27 +109,26 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+    const employeeNameMap = {
+    {% for e in employees %}
+      "{{ e.id }}": "{{ e.name|escapejs }}",
+    {% endfor %}
+  };
   const scheduleId = "{{ schedule.id }}";
   const table = document.querySelector("table");
 
   let isDragging = false;
-  // Will store references like:
-  //   cellMap.set(cell, { day, timeStr, employeeId, finalAssigned: true/false });
   const cellMap = new Map();
 
+  // === Your existing event listeners ===
   // MOUSE DOWN
   table.addEventListener("mousedown", function(e) {
     const cell = e.target.closest("td[data-day]");
     if (!cell) return;
-
     isDragging = true;
-
-    // Clear all previous toggles for a fresh drag
     cellMap.clear();
-
-    // Toggle the starting cell immediately
     toggleCell(cell);
-    e.preventDefault(); // Prevent text selection or other default drags
+    e.preventDefault();
   });
 
   // MOUSE OVER
@@ -114,30 +136,25 @@ document.addEventListener("DOMContentLoaded", function() {
     if (!isDragging) return;
     const cell = e.target.closest("td[data-day]");
     if (!cell) return;
-
-    // If we haven't toggled this cell yet, toggle it now
-    // (If you do want "crossing back" to re-toggle, remove the "hasn't toggled yet" check)
     if (!cellMap.has(cell)) {
       toggleCell(cell);
     }
   });
 
   // MOUSE UP
-  document.addEventListener("mouseup", function(e) {
+  document.addEventListener("mouseup", function() {
     if (!isDragging) return;
     isDragging = false;
 
-    // Build bulk payload from cellMap
     const togglesPayload = [];
     for (const [cell, info] of cellMap.entries()) {
       togglesPayload.push({
         day: info.day,
         time_str: info.timeStr,
         employee_id: parseInt(info.employeeId),
-        assign: info.finalAssigned // true => assign, false => unassign
+        assign: info.finalAssigned
       });
     }
-
     if (!togglesPayload.length) return;
 
     fetch("{% url 'toggle_assignment_bulk' %}", {
@@ -156,8 +173,8 @@ document.addEventListener("DOMContentLoaded", function() {
       if (!data.success) {
         console.warn("Bulk toggle failed:", data.message);
       }
-      // Either way, we’ve already updated the DOM in real time
-      // If you want to revert on error, you'd do that here
+      // We have updated the DOM in real time. Now recalc total hours:
+      updateTotalHours();
     })
     .catch(err => {
       console.error("Bulk toggle error:", err);
@@ -169,11 +186,11 @@ document.addEventListener("DOMContentLoaded", function() {
     const timeStr = cell.dataset.time.trim();
     const employeeId = cell.dataset.employeeId;
 
-    // Check current text to see if assigned
+    // Check if currently assigned
     const currentlyAssigned = (cell.innerText.trim() === "X");
-    const newAssigned = !currentlyAssigned; // flip
+    const newAssigned = !currentlyAssigned;
 
-    // Update the DOM immediately
+    // Update DOM
     if (newAssigned) {
       cell.innerText = "X";
       cell.classList.add("assignedCell");
@@ -182,11 +199,11 @@ document.addEventListener("DOMContentLoaded", function() {
       cell.classList.remove("assignedCell");
     }
 
-    // Store the final state in our map
+    // Track final state in cellMap
     cellMap.set(cell, {
-      day,
-      timeStr,
-      employeeId,
+      day: day,
+      timeStr: timeStr,
+      employeeId: employeeId,
       finalAssigned: newAssigned
     });
   }
@@ -205,48 +222,89 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     return cookieValue;
   }
-});
 
-/**
-   * Render the total worked hours table for each employee
-   * Example data shape:
-   * {
-   *   "2025-02-01": {"1": 4.0, "2": 0, "3": 2.5},
-   *   "2025-02-02": {"1": 5.0, "2": 6.0, "3": 1.5}
-   * }
+  // === New code to calculate + render total hours on the front end ===
+
+  // Call it immediately on page load (in case some cells are pre-assigned):
+  updateTotalHours();
+
+  // This scans all assigned cells, sums up hours by employee, and renders the result.
+  function updateTotalHours() {
+    const assignedCells = document.querySelectorAll("td.assignedCell");
+    const employeeHoursMap = {};
+
+    assignedCells.forEach(cell => {
+      const empId = cell.dataset.employeeId || "";
+      const timeStr = (cell.dataset.time || "").trim();
+
+      let hours = 0;
+      if (timeStr.includes("-")) {
+        // If we have something like "09:00-10:00", parse it
+        hours = getHoursFromRange(timeStr);
+      } else {
+        // Otherwise assume each assigned cell w/out a dash is a 1-hour block
+        hours = 0.5;
+      }
+
+      if (!employeeHoursMap[empId]) {
+        employeeHoursMap[empId] = 0;
+      }
+      employeeHoursMap[empId] += hours;
+    });
+
+    renderTotalWorkedHours(employeeHoursMap, employeeNameMap);
+  }
+
+  // Parse "HH:MM-HH:MM" (or "HH:MM:SS-HH:MM:SS") into decimal hours difference
+  function getHoursFromRange(rangeStr) {
+    const [startStr, endStr] = rangeStr.split("-");
+    const startHrs = parseTimeToDecimal(startStr);
+    const endHrs = parseTimeToDecimal(endStr);
+    const diff = endHrs - startHrs;
+    return diff > 0 ? diff : 0;
+  }
+
+  // Parse "09:00" or "09:00:00" => decimal hours (9.0 or 9.0)
+  function parseTimeToDecimal(t) {
+    if (!t) return 0;
+    const parts = t.split(":");
+    const hh = parseInt(parts[0], 10) || 0;
+    const mm = parseInt(parts[1], 10) || 0;
+    return hh + mm/60;
+  }
+
+  /**
+   * Renders the total hours table into #workedHoursTotal
+   * @param {object} employeeHoursMap - e.g. { "12": 5, "7": 3.5 }
    */
-  function renderTotalWorkedHours(pivotData) {
-    try {
-      const totalWorkedHours = {};
-
-      // Aggregate total worked hours for each employee
-      Object.keys(pivotData).forEach(day => {
-        const dayObj = pivotData[day];
-        for (let empId in dayObj) {
-          totalWorkedHours[empId] = (totalWorkedHours[empId] || 0) + dayObj[empId];
-        }
-      });
-
-      // Build the total hours table
+  function renderTotalWorkedHours(employeeHoursMap, employeeNameMap) {
       let html = `
-        <div class="overflow-auto">
-          <table class="table table-zebra w-full">
+        <div class="mx-auto my-6">
+          <table class="table table-zebra table-auto">
             <thead>
               <tr>
-                <th>Employee ID</th>
-                <th>Total Worked Hours</th>
+                <th>Dipendente</th>
+                <th>Ore Totali</th>
               </tr>
             </thead>
             <tbody>
       `;
 
-      for (let empId in totalWorkedHours) {
-        html += `
-          <tr>
-            <td>${empId}</td>
-            <td>${totalWorkedHours[empId].toFixed(2)}</td>
-          </tr>
-        `;
+      const empIds = Object.keys(employeeHoursMap).sort((a,b) => parseInt(a) - parseInt(b));
+
+      if (empIds.length === 0) {
+        html += `<tr><td colspan="2">No assigned cells</td></tr>`;
+      } else {
+        empIds.forEach(empId => {
+          const hours = employeeHoursMap[empId].toFixed(2);
+          const displayName = employeeNameMap[empId] || `ID#${empId}`; // fallback if not found
+          html += `
+            <tr>
+              <td><div class="badge badge-primary">${displayName}</div></td>
+              <td><div class="badge badge-primary">${hours}</div></td>
+            </tr>
+          `;
+        });
       }
 
       html += `
@@ -256,25 +314,13 @@ document.addEventListener("DOMContentLoaded", function() {
       `;
 
       document.getElementById("workedHoursTotal").innerHTML = html;
-    } catch (error) {
-      console.error("Error rendering total worked hours:", error);
-      Swal.fire("Error", "An error occurred while rendering the total worked hours: " + error.message, "error");
     }
-  }
-
-
+});
 </script>
 
     <style>
 
-    table {
-  border-collapse: collapse; /* Ensure borders are merged */
-}
 
-table th,
-table td {
-  border: 1px solid rgba(0, 0, 0, 0.1); /* A very subtle border */
-}
   .assignedCell {
     background-color: var(--assigned-cell-color); /* a mild highlight */
     position: relative;
@@ -289,5 +335,27 @@ table td {
   .day-separator {
     border-right: 2px solid #000; /* Change color and width as desired */
   }
+
+     table {
+      border-collapse: collapse; /* Ensure borders are merged */
+    }
+
+    table th,
+    table td {
+      border: 1px solid rgba(0, 0, 0, 0.1); /* A very subtle border */
+    }
+
+    /* you already have sticky left col, but ensure it doesn't get overshadowed */
+    table tbody th,
+    table tbody td:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 10;
+    }
+
+    /* Optionally reduce cell padding */
+    .table td, .table th {
+      padding: 0.25rem 0.5rem; /* smaller than default to fit more columns */
+    }
 </style>
 {% endblock content %}

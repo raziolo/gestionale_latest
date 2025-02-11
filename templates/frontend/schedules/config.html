@@ -8,38 +8,39 @@
 {% block content %}
 <div class="container mx-auto my-8 px-4">
   <!-- Schedule Info Card -->
-  <div class="card bg-base-100 shadow-xl p-6 mb-8 text-center">
-  <div class="card-body">
-    <h2 class="card-title text-2xl">
-      Configura Orario #
-      <span class="badge badge-secondary text-lg">{{ schedule.id }}</span>
-    </h2>
-    <div class="flex flex-wrap gap-4 mt-4 items-center justify-between">
-      <div class="flex gap-4">
+    <div class="card bg-base-100 shadow-xl p-6 mb-8">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+        <!-- Left: Schedule Details -->
         <div>
-          <span class="font-bold">Dal:</span>
-          <span class="badge badge-info">{{ schedule.start_date }}</span>
+          <h2 class="card-title text-2xl mb-2">
+            Modifica Orario #
+            <span class="badge badge-secondary text-lg">{{ schedule.id }}</span>
+          </h2>
+          <div class="flex flex-wrap gap-4">
+            <div class="flex items-center">
+              <span class="font-bold mr-2">Dal:</span>
+              <span class="badge badge-info">{{ schedule.start_date }}</span>
+            </div>
+            <div class="flex items-center">
+              <span class="font-bold mr-2">Al:</span>
+              <span class="badge badge-info">{{ schedule.end_date }}</span>
+            </div>
+            <div class="flex items-center">
+              <span class="font-bold mr-2">Sede:</span>
+              <span class="badge badge-info">{{ schedule.branch.name }}</span>
+            </div>
+          </div>
         </div>
-        <div>
-          <span class="font-bold">Al:</span>
-          <span class="badge badge-info">{{ schedule.end_date }}</span>
-        </div>
-        <div>
-          <span class="font-bold">Sede:</span>
-          <span class="badge badge-info">{{ schedule.branch.name }}</span>
+        <!-- Right: Steps -->
+        <div class="mt-4 md:mt-0">
+          <ul class="steps steps-horizontal">
+            <li class="step step-primary">Variabili</li>
+            <li class="step step-primary">Configurazione</li>
+            <li class="step">Conferma</li>
+          </ul>
         </div>
       </div>
-
-      <!-- Steps aligned to the right -->
-      <ul class="steps ml-auto">
-        <li class="step step-primary">Variabili</li>
-        <li class="step step-primary">Configurazione</li>
-        <li class="step">Conferma</li>
-      </ul>
     </div>
-  </div>
-</div>
-
 
   <!-- Main Form (all data will be posted in one go) -->
   <form method="POST" action="#" onsubmit="prepareFormData(event)" class="space-y-8">
