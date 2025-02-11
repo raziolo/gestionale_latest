@@ -62,7 +62,7 @@ class ScheduleForm(forms.ModelForm):
         if all_emp_flag and branch:
             # Override any selected employees with all in that branch
             emp_ids = list(Employee.objects.filter(branch=branch).values_list('id', flat=True))
-            cleaned_data['employees_select'] = Employee.objects.filter(id__in=emp_ids)
+            cleaned_data['employees'] = Employee.objects.filter(id__in=emp_ids)
 
         # Convert the selected employees to a list of IDs
         employees_qs = cleaned_data.get('employees')  # This is a QuerySet of Employees
