@@ -19,11 +19,126 @@ from api import formulas as f
 
 
 # Create your views here.
+# views.py
+from datetime import datetime, timedelta
+from django.shortcuts import render
+from api.models import Branch
+# Import your formulas functions (adjust the import path as needed)
+
+from datetime import datetime, timedelta
+import logging
+
+from django.shortcuts import render
+from django.http import HttpResponse
+
+# Set up logging (this example uses the standard library's logging)
+logger = logging.getLogger(__name__)
+
+
 def dashboard(request):
+    date_param = None
+    date = None
+    date_start, date_end = None, None
 
-    return render(request, template_name="frontend/dashboard.html")
+    branches = Branch.objects.all()
+
+    branches_om = []
+    branches_equivalenza = []
+
+    for branch in branches:
+        if branch.get_brand() == "original":
+            branches_om.append(branch)
+        elif branch.get_brand() == "equivalenza":
+            branches_equivalenza.append(branch)
+
+    if request.method == "POST":
+        date_param = request.POST.get('date', None)
+        date = date_param
+
+    # Get the query string parameters
+    if not date_param:
+        date_start_param = datetime.now().date() - timedelta(days=385)
+        date_end_param = datetime.now().date() - timedelta(days=355)
+
+        date_start_str = date_start_param.strftime('%Y-%m-%d')
+        date_end_str = date_end_param.strftime('%Y-%m-%d')
+
+        date = "{} to {}".format(date_start_str, date_end_str)
+
+    # Convert the date parameter to string (it may be None)
+
+    # Initialize date_start and date_end
+
+    # Check if the date string contains a range (using "to")
+    if "to" in date:
+        parts = date.split("to")
+        if len(parts) >= 2:
+            date_start = parts[0].strip()
+            date_end = parts[1].strip()
+        else:
+            date_start = date.strip()
+            date_end = date.strip()
+    else:
+        # If no range is provided, you could either treat it as a single date or return an error.
+        # Here, we treat it as a single date.
+        date_start = date.strip()
+        date_end = date.strip()
+
+    start_date = datetime.strptime(date_start, '%Y-%m-%d')
+    end_date = datetime.strptime(date_end, '%Y-%m-%d')
+
+    start_date_str = start_date.strftime('%Y-%m-%d')
+    end_date_str = end_date.strftime('%Y-%m-%d')
+
+    branches_data = []
+    for branch in branches:
+        branch_data = {}
+        # --- Compute All KPI Metrics using your formulas ---
+        try:
+            sales_data = f.generate_branch_report_sales(branch.id, start_date_str, end_date_str)
+            receipts_data = f.generate_branch_report_scontrini(branch.id, start_date_str, end_date_str)
+            traffic_data = f.generate_ingressi_branch_report(branch.id, start_date_str, end_date_str)
+            external_traffic = f.generate_branch_traffico_esterno_report(branch.id, start_date_str, end_date_str)
+            employee_performance = f.generate_report_performance_sales(branch.id, start_date_str, end_date_str)
+            conversion_rate = f.generate_branch_report_conversion_rate(branch.id, start_date_str, end_date_str)
+
+            categories = sorted(sales_data.keys(), reverse=False)
+
+            branch_data.update({
+                'id': branch.id,
+                'name': branch.name,
+                'brand': branch.get_brand(),
+                'sales': sales_data,
+                'receipts': receipts_data,
+                'traffic': traffic_data,
+                'conversion_rate': conversion_rate,
+                'external_traffic': external_traffic,
+                'employee_performance': employee_performance,
+                'categories': categories,
+
+            })
+            branches_data.append(branch_data)
+
+        except Exception as e:
+            print(e)
+            return HttpResponse("Error calculating metrics", status=500)
 
 
+
+    context = {
+        'branches_om': branches_om,
+        'branches_equivalenza': branches_equivalenza,
+        'branches_data': branches_data
+    }
+
+    pprint(branches_data)
+
+    # If this is an HTMX request, return only the dashboard content partial
+    if request.headers.get("HX-Request") == "true":
+        print("htmx")
+        return render(request, "frontend/dashboard_content.html", context)
+    else:
+        return render(request, "frontend/dashboard.html", context)
 
 
 from django_tables2 import SingleTableView
@@ -67,7 +182,6 @@ def import_data(request):
         branch_obj = Branch.objects.get(id=selected_branch)
 
         if branch_obj.get_brand() == "equivalenza":
-            print("equivalenza")
 
             if selected_type == "counter_data":
                 if uploaded_file:
@@ -167,7 +281,7 @@ def import_data(request):
 
                     for date, records in data_dict.items():
                         employees_day_id_list = []
-
+                        date = datetime.strptime(date, '%d/%m/%Y').strftime('%Y-%m-%d')
                         for record in records:
                             try:
                                 employees_day_id_list.append(record['Dipendente'])
@@ -396,13 +510,14 @@ def report_branch(request):
             zoom_enabled = "true"
             graph_type = "area"
 
-
+        brand = branch.get_brand()
+        print(brand)
 
         context = {
             "sc": sc,
             "sc_total": sc_total,
             "sales_total": sales_total,
-            "brand": branch.get_brand(),
+            "brand": brand,
             "date_start": date_start,
             "branch": branch,
             "date_end": date_end,

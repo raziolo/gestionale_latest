@@ -26,3 +26,13 @@ def time_display(minutes):
         return ''
 
 
+@register.filter
+def sum_values(value):
+    return round(sum(value.values()), 2)
+
+@register.filter
+def sum_values_int(value):
+    return int(sum(value.values()))
+
+
+

@@ -28,7 +28,7 @@ def get_scontrini_dipendente_single_date(employee_id, date):
     try:
         import_obj = Import.objects.get(import_date=date, branch=branch, import_type="sales_data")
     except Import.DoesNotExist:
-        print("no impp")
+        return 0
 
     data = import_obj.data
     for employee_data in data:
@@ -54,7 +54,7 @@ def get_scontrini_dipendente_date_range(employee_id, start_date, end_date):
     try:
         import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="sales_data")
     except Import.DoesNotExist:
-        print("no impp")
+        return 0
 
     grand_total = 0
 
@@ -81,7 +81,7 @@ def get_total_scontrini_single_date(branch_id, date):
     try:
         import_objs_qs = Import.objects.filter(import_date=date, branch=branch, import_type="sales_data")
     except Import.DoesNotExist:
-        print("no impp")
+        return 0
 
     grand_total = 0
     if import_objs_qs.count() > 0:
@@ -91,6 +91,7 @@ def get_total_scontrini_single_date(branch_id, date):
                 grand_total += float(employee_data['Sco.'])
 
         return grand_total
+    return 0
 
 
 def generate_branch_report_scontrini(branch_id, start_date, end_date):
@@ -107,7 +108,7 @@ def generate_branch_report_scontrini(branch_id, start_date, end_date):
     try:
         import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="sales_data")
     except Import.DoesNotExist:
-        print("no impp")
+        return 0
 
     try:
         employees_objs_qs = Employee.objects.filter(branch=branch)
@@ -120,6 +121,8 @@ def generate_branch_report_scontrini(branch_id, start_date, end_date):
 
     for import_obj in import_objs_qs:
         data[import_obj.import_date] = get_total_scontrini_single_date(branch_id, import_obj.import_date)
+
+    data = dict(sorted(data.items(), key=lambda x: x[0]))
 
     return data
 
@@ -254,7 +257,9 @@ def generate_report_performance_sales(branch_id, start_date, end_date):
         # Create a list of values corresponding to each day in date_range.
         display_data[key] = [daily_data[date] for date in date_range]
 
-    return display_data
+    display_data_sorted = dict(sorted(display_data.items(), key=lambda x: x[0]))
+
+    return display_data_sorted
 
 
 ### VENDITE
@@ -272,7 +277,7 @@ def get_branch_single_day_sales(branch_id, date):
     try:
         import_objs_qs = Import.objects.filter(import_date=date, branch=branch, import_type="sales_data")
     except Import.DoesNotExist:
-        print("no impp")
+        return 0
 
     from decimal import Decimal, ROUND_HALF_UP
 
@@ -307,7 +312,7 @@ def generate_branch_report_sales(branch_id, start_date, end_date):
     try:
         import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="sales_data")
     except Import.DoesNotExist:
-        print("no impp")
+        return 0
 
     # data = {"YYYY/MM/DD": 203, "YYYY/MM/DD": 101}
 
@@ -335,7 +340,7 @@ def get_number_sales_performance_single_date(employee_id, date):
     try:
         import_obj = Import.objects.get(import_date=date, branch=branch, import_type="sales_data")
     except Import.DoesNotExist:
-        print("no impp")
+        return 0
 
     data = import_obj.data
     for employee_data in data:
@@ -362,7 +367,7 @@ def get_number_sales_performance_employee_date_range(employee_id, start_date, en
     try:
         import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="sales_data")
     except Import.DoesNotExist:
-        print("no impp")
+        return 0
 
     grand_total = 0
 
@@ -390,7 +395,7 @@ def generate_number_sales_performance(branch_id, start_date, end_date):
     try:
         import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="sales_data")
     except Import.DoesNotExist:
-        print("no impp")
+        return 0
 
     try:
         employees_objs_qs = Employee.objects.filter(branch=branch)
@@ -454,7 +459,7 @@ def get_number_ingressi_single_date(branch_id, date):
     try:
         import_obj = Import.objects.get(import_date=date, branch=branch, import_type="counter_data")
     except Import.DoesNotExist:
-        print("no impp")
+        return 0
 
     data = import_obj.data
     for counter_data in data:
@@ -475,7 +480,7 @@ def get_traffico_esterno_single_date(branch_id, date):
     try:
         import_obj = Import.objects.get(import_date=date, branch=branch, import_type="counter_data")
     except Import.DoesNotExist:
-        print("no impp")
+        return 0
 
     data = import_obj.data
     for counter_data in data:
@@ -496,7 +501,7 @@ def get_tasso_attrazione_single_date(branch_id, date):
     try:
         import_obj = Import.objects.get(import_date=date, branch=branch, import_type="counter_data")
     except Import.DoesNotExist:
-        print("no impp")
+        return 0
 
     data = import_obj.data
     for counter_data in data:
@@ -518,7 +523,7 @@ def get_number_ingressi_date_range(branch_id, start_date, end_date):
     try:
         import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="counter_data")
     except Import.DoesNotExist:
-        print("no impp")
+        return 0
 
     grand_total = 0
 
@@ -544,7 +549,7 @@ def get_traffico_esterno_date_range(branch_id, start_date, end_date):
     try:
         import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="counter_data")
     except Import.DoesNotExist:
-        print("no impp")
+        return 0
 
     grand_total = 0
 
@@ -570,7 +575,7 @@ def get_tasso_attrazione_date_range(branch_id, start_date, end_date):
     try:
         import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="counter_data")
     except Import.DoesNotExist:
-        print("no impp")
+        return 0
 
     grand_total = 0
 
@@ -597,7 +602,7 @@ def generate_ingressi_branch_report(branch_id, start_date, end_date):
     try:
         import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="counter_data")
     except Import.DoesNotExist:
-        print("no impp")
+        return 0
 
     print(import_objs_qs.count())
 
@@ -624,7 +629,7 @@ def generate_branch_traffico_esterno_report(branch_id, start_date, end_date):
     try:
         import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="counter_data")
     except Import.DoesNotExist:
-        print("no impp")
+        return 0
 
     # data = {"YYYY/MM/DD": 203, "YYYY/MM/DD": 101}
 
@@ -648,7 +653,7 @@ def generate_branch_tasso_attrazione_report(branch_id, start_date, end_date):
     try:
         import_objs_qs = Import.objects.filter(import_date__range=(start_date, end_date), branch=branch, import_type="counter_data")
     except Import.DoesNotExist:
-        print("no impp")
+        return 0
 
     # data = {"YYYY/MM/DD": 203, "YYYY/MM/DD": 101}
 
@@ -717,23 +722,46 @@ def get_employee_worked_hours_single_day(employee_id, date):
     return worked_hours
 
 
+def get_conversion_rate_single_date(branch_id, date):
+
+    ingressi_daily = get_number_ingressi_single_date(branch_id, date)
+    scontrini_daily = get_total_scontrini_single_date(branch_id, date)
+
+    print(type(scontrini_daily))
+
+    if scontrini_daily > 0 and ingressi_daily > 0:
+        conversion_rate_percentual = (scontrini_daily / ingressi_daily) * 100
+        conversion_rate = conversion_rate_percentual if conversion_rate_percentual > 0 else 0
+    else:
+        conversion_rate = 0
+    return conversion_rate
 
 
+def generate_branch_report_conversion_rate(branch_id, start_date_str, end_date_str):
 
+    branch = None
+    import_objs_qs = None
 
+    try:
+        branch = Branch.objects.get(id=branch_id)
+    except Branch.DoesNotExist:
+        print("no branch")
 
+    # Create a date range list from start_date to end_date (inclusive)
+    try:
+        start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        end_date_obj = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+    except ValueError:
+        print("Date format error. Please use YYYY-MM-DD.")
+        return {}, []
 
+    num_days = (end_date_obj - start_date_obj).days + 1
+    date_range = [(start_date_obj + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(num_days)]
 
+    data = {}
 
+    for date in date_range:
+        data[date] = get_conversion_rate_single_date(branch_id, date)
 
-
-
-
-
-
-
-
-
-
-
+    return data
 

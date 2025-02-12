@@ -109,7 +109,7 @@
         document.documentElement.setAttribute('data-theme', newTheme);
 
         // Save new theme in a cookie
-        setCookie('theme', newTheme, 30); // Save for 30 days
+        setCookie('theme', newTheme, 500); // Save for 30 days
       });
     }
   });
@@ -120,7 +120,7 @@
 
 <footer class="footer footer-center bg-base-200 text-base-content p-4">
   <aside>
-    <p>2025 - Gestionale 3</p>
+    <p><a href="{% url 'config' %}">2025 - Gestionale 3</a></p>
   </aside>
 </footer>
 </body>
